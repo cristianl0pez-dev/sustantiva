@@ -185,7 +185,7 @@ export default function EstudiantesPage() {
                   {estudiante.email}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {estudiante.bootcamp?.nombre || '-'}
+                  {estudiante.bootcamp_nombre || '-'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${getEstadoColor(estudiante.estado)}`}>

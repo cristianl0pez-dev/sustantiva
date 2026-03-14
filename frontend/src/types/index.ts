@@ -46,6 +46,7 @@ export interface Estudiante {
   ultimo_contacto?: string;
   created_at: string;
   bootcamp?: { id: number; nombre: string };
+  bootcamp_nombre?: string;
   responsable?: { id: number; nombre: string; email: string };
 }
 
