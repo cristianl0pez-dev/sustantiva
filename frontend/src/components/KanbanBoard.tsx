@@ -5,6 +5,12 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { estudiantes } from '@/lib/api'
 import { EstudianteEstado, EstudianteKanban, KanbanColumns } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
+import { Box, Typography, Paper, Chip, Avatar } from '@mui/material'
+import {
+  Person as PersonIcon,
+  Warning as WarningIcon,
+  Schedule as ScheduleIcon,
+} from '@mui/icons-material'
 
 const COLUMN_ORDER: EstudianteEstado[] = [
   'nuevo',
@@ -21,22 +27,22 @@ const COLUMN_LABELS: Record<EstudianteEstado, string> = {
   nuevo: 'Nuevo',
   onboarding: 'Onboarding',
   activo: 'Activo',
-  necesita_seguimiento: 'Necesita Seguimiento',
+  necesita_seguimiento: 'Seguimiento',
   en_riesgo: 'En Riesgo',
   reactivado: 'Reactivado',
   abandono: 'Abandonó',
   graduado: 'Graduado',
 }
 
-const COLUMN_COLORS: Record<EstudianteEstado, string> = {
-  nuevo: 'bg-blue-50 border-blue-200',
-  onboarding: 'bg-purple-50 border-purple-200',
-  activo: 'bg-green-50 border-green-200',
-  necesita_seguimiento: 'bg-yellow-50 border-yellow-200',
-  en_riesgo: 'bg-red-50 border-red-200',
-  reactivado: 'bg-orange-50 border-orange-200',
-  abandono: 'bg-gray-50 border-gray-200',
-  graduado: 'bg-emerald-50 border-emerald-200',
+const COLUMN_COLORS: Record<EstudianteEstado, { bg: string; border: string; chip: 'default' | 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success' }> = {
+  nuevo: { bg: '#eff6ff', border: '#bfdbfe', chip: 'primary' },
+  onboarding: { bg: '#faf5ff', border: '#e9d5ff', chip: 'secondary' },
+  activo: { bg: '#ecfdf5', border: '#a7f3d0', chip: 'success' },
+  necesita_seguimiento: { bg: '#fffbeb', border: '#fde68a', chip: 'warning' },
+  en_riesgo: { bg: '#fef2f2', border: '#fecaca', chip: 'error' },
+  reactivado: { bg: '#fff7ed', border: '#fed7aa', chip: 'warning' },
+  abandono: { bg: '#f9fafb', border: '#e5e7eb', chip: 'default' },
+  graduado: { bg: '#ecfdf5', border: '#a7f3d0', chip: 'success' },
 }
 
 interface KanbanBoardProps {
@@ -88,65 +94,152 @@ export default function KanbanBoard({ initialData, bootcampId }: KanbanBoardProp
   }
 
   const getRiskColor = (riesgo: number) => {
-    if (riesgo >= 60) return 'bg-red-500'
-    if (riesgo >= 30) return 'bg-yellow-500'
-    return 'bg-green-500'
+    if (riesgo >= 60) return 'error'
+    if (riesgo >= 30) return 'warning'
+    return 'success'
   }
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {COLUMN_ORDER.map((columnId) => (
-          <div key={columnId} className={`flex-shrink-0 w-72 ${COLUMN_COLORS[columnId]} rounded-lg border`}>
-            <div className="p-3 border-b">
-              <h3 className="font-semibold text-gray-900">{COLUMN_LABELS[columnId]}</h3>
-              <p className="text-sm text-gray-500">{columns[columnId]?.length || 0} estudiantes</p>
-            </div>
-            <Droppable droppableId={columnId}>
-              {(provided, snapshot) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={`p-2 min-h-[200px] ${snapshot.isDraggingOver ? 'bg-white/50' : ''}`}
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 2,
+          overflowX: 'auto',
+          pb: 2,
+        }}
+      >
+        {COLUMN_ORDER.map((columnId) => {
+          const colorScheme = COLUMN_COLORS[columnId]
+          return (
+            <Box
+              key={columnId}
+              sx={{
+                flexShrink: 0,
+                width: 280,
+              }}
+            >
+              <Paper
+                elevation={0}
+                sx={{
+                  bgcolor: colorScheme.bg,
+                  border: '1px solid',
+                  borderColor: colorScheme.border,
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                }}
+              >
+                <Box
+                  sx={{
+                    p: 2,
+                    borderBottom: '1px solid',
+                    borderColor: colorScheme.border,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
                 >
-                  {columns[columnId]?.map((student, index) => (
-                    <Draggable key={student.id.toString()} draggableId={student.id.toString()} index={index}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className={`bg-white rounded-lg shadow-sm p-3 mb-2 ${
-                            snapshot.isDragging ? 'shadow-lg ring-2 ring-primary-500' : ''
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="font-medium text-gray-900">
-                                {student.nombre} {student.apellido}
-                              </p>
-                              <p className="text-sm text-gray-500">{student.bootcamp_nombre}</p>
-                            </div>
-                            <div className="flex flex-col items-end">
-                              <div className={`w-3 h-3 rounded-full ${getRiskColor(student.riesgo_desercion)}`} title={`Riesgo: ${student.riesgo_desercion}%`} />
-                              {student.ultimo_contacto_dias !== undefined && student.ultimo_contacto_dias !== null && (
-                                <span className="text-xs text-gray-400 mt-1">
-                                  {student.ultimo_contacto_dias}d
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </div>
-        ))}
-      </div>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      {COLUMN_LABELS[columnId]}
+                    </Typography>
+                    <Chip
+                      label={columns[columnId]?.length || 0}
+                      size="small"
+                      color={colorScheme.chip}
+                      sx={{ height: 22, fontSize: '0.7rem' }}
+                    />
+                  </Box>
+                </Box>
+                <Droppable droppableId={columnId}>
+                  {(provided, snapshot) => (
+                    <Box
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      sx={{
+                        p: 1,
+                        minHeight: 200,
+                        bgcolor: snapshot.isDraggingOver ? 'rgba(255,255,255,0.5)' : 'transparent',
+                        transition: 'background-color 0.2s',
+                      }}
+                    >
+                      {columns[columnId]?.map((student, index) => (
+                        <Draggable key={student.id.toString()} draggableId={student.id.toString()} index={index}>
+                          {(provided, snapshot) => (
+                            <Paper
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              elevation={snapshot.isDragging ? 4 : 0}
+                              sx={{
+                                p: 1.5,
+                                mb: 1,
+                                borderRadius: 1.5,
+                                bgcolor: 'background.paper',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                boxShadow: snapshot.isDragging ? '0 8px 16px rgba(0,0,0,0.15)' : 'none',
+                                transition: 'box-shadow 0.2s, transform 0.2s',
+                                transform: snapshot.isDragging ? 'rotate(2deg)' : 'none',
+                                cursor: 'grab',
+                                '&:hover': {
+                                  boxShadow: 1,
+                                },
+                              }}
+                            >
+                              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                                <Avatar
+                                  sx={{
+                                    width: 32,
+                                    height: 32,
+                                    bgcolor: colorScheme.chip === 'default' ? 'grey.400' : `${colorScheme.chip}.main`,
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {student.nombre.charAt(0)}
+                                </Avatar>
+                                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                  <Typography variant="body2" fontWeight={600} noWrap>
+                                    {student.nombre} {student.apellido}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" noWrap display="block">
+                                    {student.bootcamp_nombre}
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                                  <Box
+                                    sx={{
+                                      width: 8,
+                                      height: 8,
+                                      borderRadius: '50%',
+                                      bgcolor: getRiskColor(student.riesgo_desercion) === 'error' 
+                                        ? 'error.main' 
+                                        : getRiskColor(student.riesgo_desercion) === 'warning'
+                                        ? 'warning.main'
+                                        : 'success.main',
+                                    }}
+                                  />
+                                  {student.ultimo_contacto_dias !== undefined && student.ultimo_contacto_dias !== null && (
+                                    <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
+                                      {student.ultimo_contacto_dias}d
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Box>
+                            </Paper>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </Box>
+                  )}
+                </Droppable>
+              </Paper>
+            </Box>
+          )
+        })}
+      </Box>
     </DragDropContext>
   )
 }

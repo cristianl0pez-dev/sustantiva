@@ -5,6 +5,18 @@ import { useParams } from 'next/navigation'
 import { bootcamps, estudiantes } from '@/lib/api'
 import KanbanBoard from '@/components/KanbanBoard'
 import Link from 'next/link'
+import {
+  Box,
+  Typography,
+  Button,
+  Breadcrumbs,
+  Link as MuiLink,
+  CircularProgress,
+} from '@mui/material'
+import {
+  NavigateNext as NavigateNextIcon,
+  Add as AddIcon,
+} from '@mui/icons-material'
 
 export default function BootcampKanbanPage() {
   const params = useParams()
@@ -24,32 +36,48 @@ export default function BootcampKanbanPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <CircularProgress />
+      </Box>
     )
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <Link href="/dashboard/bootcamps" className="text-sm text-gray-500 hover:text-gray-700">
-            ← Volver a Bootcamps
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900 mt-2">
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Breadcrumbs
+            separator={<NavigateNextIcon fontSize="small" />}
+            sx={{ mb: 0.5 }}
+          >
+            <MuiLink
+              component={Link}
+              href="/dashboard/bootcamps"
+              color="text.secondary"
+              underline="hover"
+              sx={{ fontSize: '0.875rem' }}
+            >
+              Bootcamps
+            </MuiLink>
+            <Typography color="text.primary" sx={{ fontSize: '0.875rem' }}>
+              {bootcamp?.nombre}
+            </Typography>
+          </Breadcrumbs>
+          <Typography variant="h4" fontWeight="bold">
             {bootcamp?.nombre}
-          </h1>
-        </div>
-        <Link
-          href={`/dashboard/estudiantes/nuevo?bootcamp_id=${bootcampId}`}
-          className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          component={Link}
+          href={`/dashboard/estudiantes?bootcamp_id=${bootcampId}`}
         >
-          + Nuevo Estudiante
-        </Link>
-      </div>
+          Nuevo Estudiante
+        </Button>
+      </Box>
 
       <KanbanBoard initialData={kanbanData || {}} bootcampId={bootcampId} />
-    </div>
+    </Box>
   )
 }

@@ -27,11 +27,13 @@ import {
   IconButton,
   Collapse,
   CircularProgress,
+  InputAdornment,
 } from '@mui/material'
 import {
   Add as AddIcon,
   KeyboardArrowDown as ArrowDownIcon,
   KeyboardArrowUp as ArrowUpIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material'
 
 export default function EstudiantesPage() {
@@ -39,6 +41,7 @@ export default function EstudiantesPage() {
   const bootcampFilter = searchParams.get('bootcamp_id')
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -91,6 +94,10 @@ export default function EstudiantesPage() {
     if (riesgo >= 30) return 'warning'
     return 'success'
   }
+
+  const filteredEstudiantes = estudiantesList?.filter((est: Estudiante) =>
+    `${est.nombre} ${est.apellido} ${est.email}`.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   if (isLoading) {
     return (
@@ -186,6 +193,21 @@ export default function EstudiantesPage() {
         </Paper>
       </Collapse>
 
+      <TextField
+        placeholder="Buscar estudiantes..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        size="small"
+        sx={{ width: 300, mb: 2 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon sx={{ color: 'text.secondary' }} />
+            </InputAdornment>
+          ),
+        }}
+      />
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -199,7 +221,7 @@ export default function EstudiantesPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {estudiantesList?.map((estudiante: Estudiante) => (
+            {filteredEstudiantes?.map((estudiante: Estudiante) => (
               <TableRow key={estudiante.id} hover>
                 <TableCell>
                   <Typography fontWeight="bold">
