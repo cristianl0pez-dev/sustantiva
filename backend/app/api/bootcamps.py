@@ -4,7 +4,7 @@ from typing import List
 from app.db.session import get_db
 from app.models.bootcamp import Bootcamp
 from app.models.estudiante import Estudiante, EstudianteEstado
-from app.schemas.bootcamp import BootcampCreate, BootcampUpdate, Bootcamp, BootcampWithCount
+from app.schemas.bootcamp import BootcampCreate, BootcampUpdate, BootcampSchema, BootcampWithCount
 from app.core.deps import require_admin, require_student_success
 from app.models.user import User
 
@@ -33,7 +33,7 @@ def get_bootcamps(
     return result
 
 
-@router.get("/{bootcamp_id}", response_model=Bootcamp)
+@router.get("/{bootcamp_id}", response_model=BootcampSchema)
 def get_bootcamp(
     bootcamp_id: int,
     db: Session = Depends(get_db),
@@ -45,7 +45,7 @@ def get_bootcamp(
     return bootcamp
 
 
-@router.post("", response_model=Bootcamp)
+@router.post("", response_model=BootcampSchema)
 def create_bootcamp(
     bootcamp_data: BootcampCreate,
     db: Session = Depends(get_db),
@@ -58,7 +58,7 @@ def create_bootcamp(
     return bootcamp
 
 
-@router.put("/{bootcamp_id}", response_model=Bootcamp)
+@router.put("/{bootcamp_id}", response_model=BootcampSchema)
 def update_bootcamp(
     bootcamp_id: int,
     bootcamp_data: BootcampUpdate,

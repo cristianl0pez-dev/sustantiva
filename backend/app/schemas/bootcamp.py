@@ -28,6 +28,9 @@ class Bootcamp(BootcampBase):
         from_attributes = True
 
 
+BootcampSchema = Bootcamp
+
+
 class BootcampWithCount(Bootcamp):
     total_estudiantes: int = 0
     estudiantes_activos: int = 0
