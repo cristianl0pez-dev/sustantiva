@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from app.db.session import get_db
 from app.models.bootcamp import Bootcamp, BootcampEstado
@@ -72,7 +72,10 @@ def get_estudiantes_en_riesgo(
         bootcamp = db.query(Bootcamp).filter(Bootcamp.id == est.bootcamp_id).first()
         ultimo_contacto_dias = 0
         if est.ultimo_contacto:
-            ultimo_contacto_dias = (datetime.now() - est.ultimo_contacto).days
+            ultimo_contacto = est.ultimo_contacto
+            if ultimo_contacto.tzinfo is not None:
+                ultimo_contacto = ultimo_contacto.replace(tzinfo=None)
+            ultimo_contacto_dias = (datetime.now() - ultimo_contacto).days
         
         result.append(EstudianteEnRiesgo(
             id=est.id,
