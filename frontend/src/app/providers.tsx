@@ -5,6 +5,9 @@ import { useState, createContext, useContext, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/api'
 import { User } from '@/types'
+import { ThemeProvider } from '@mui/material/styles'
+import CssBaseline from '@mui/material/CssBaseline'
+import { theme } from '@/theme/theme'
 
 interface AuthContextType {
   user: User | null;
@@ -59,10 +62,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={{ user, loading, login, logout }}>
-        {children}
-      </AuthContext.Provider>
-    </QueryClientProvider>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <QueryClientProvider client={queryClient}>
+        <AuthContext.Provider value={{ user, loading, login, logout }}>
+          {children}
+        </AuthContext.Provider>
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }

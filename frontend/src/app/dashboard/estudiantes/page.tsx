@@ -6,6 +6,33 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { estudiantes, bootcamps } from '@/lib/api'
 import { Estudiante, Bootcamp } from '@/types'
+import {
+  Box,
+  Typography,
+  Button,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  LinearProgress,
+  IconButton,
+  Collapse,
+  CircularProgress,
+} from '@mui/material'
+import {
+  Add as AddIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  KeyboardArrowUp as ArrowUpIcon,
+} from '@mui/icons-material'
 
 export default function EstudiantesPage() {
   const searchParams = useSearchParams()
@@ -45,180 +72,176 @@ export default function EstudiantesPage() {
     createMutation.mutate({ ...formData, bootcamp_id: Number(formData.bootcamp_id) })
   }
 
-  const getEstadoColor = (estado: string) => {
-    const colors: Record<string, string> = {
-      nuevo: 'bg-blue-100 text-blue-800',
-      onboarding: 'bg-purple-100 text-purple-800',
-      activo: 'bg-green-100 text-green-800',
-      necesita_seguimiento: 'bg-yellow-100 text-yellow-800',
-      en_riesgo: 'bg-red-100 text-red-800',
-      reactivado: 'bg-orange-100 text-orange-800',
-      abandono: 'bg-gray-100 text-gray-800',
-      graduado: 'bg-emerald-100 text-emerald-800',
+  const getEstadoColor = (estado: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+    const colors: Record<string, any> = {
+      nuevo: 'primary',
+      onboarding: 'secondary',
+      activo: 'success',
+      necesita_seguimiento: 'warning',
+      en_riesgo: 'error',
+      reactivado: 'warning',
+      abandono: 'default',
+      graduado: 'success',
     }
-    return colors[estado] || 'bg-gray-100 text-gray-800'
+    return colors[estado] || 'default'
+  }
+
+  const getRiesgoColor = (riesgo: number) => {
+    if (riesgo >= 60) return 'error'
+    if (riesgo >= 30) return 'warning'
+    return 'success'
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <CircularProgress />
+      </Box>
     )
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Estudiantes</h1>
-        <button
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" fontWeight="bold">
+          Estudiantes
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={showForm ? <ArrowUpIcon /> : <AddIcon />}
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
         >
           {showForm ? 'Cancelar' : 'Nuevo Estudiante'}
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      {showForm && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nombre</label>
-                <input
-                  type="text"
-                  required
+      <Collapse in={showForm}>
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <form onSubmit={handleSubmit}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label="Nombre"
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Apellido</label>
-                <input
-                  type="text"
                   required
+                  fullWidth
+                />
+                <TextField
+                  label="Apellido"
                   value={formData.apellido}
                   onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
                   required
+                  fullWidth
+                />
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label="Email"
+                  type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Bootcamp</label>
-                <select
                   required
-                  value={formData.bootcamp_id}
-                  onChange={(e) => setFormData({ ...formData, bootcamp_id: e.target.value as any })}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">Seleccionar...</option>
-                  {bootcampsList?.map((bc: Bootcamp) => (
-                    <option key={bc.id} value={bc.id}>{bc.nombre}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Teléfono</label>
-                <input
-                  type="text"
+                  fullWidth
+                />
+                <FormControl fullWidth>
+                  <InputLabel>Bootcamp</InputLabel>
+                  <Select
+                    value={formData.bootcamp_id}
+                    label="Bootcamp"
+                    onChange={(e) => setFormData({ ...formData, bootcamp_id: e.target.value as any })}
+                    required
+                  >
+                    <MenuItem value="">Seleccionar...</MenuItem>
+                    {bootcampsList?.map((bc: Bootcamp) => (
+                      <MenuItem key={bc.id} value={bc.id}>{bc.nombre}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label="Teléfono"
                   value={formData.telefono}
                   onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  fullWidth
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">WhatsApp</label>
-                <input
-                  type="text"
+                <TextField
+                  label="WhatsApp"
                   value={formData.whatsapp}
                   onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  fullWidth
                 />
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
-            >
-              {createMutation.isPending ? 'Creando...' : 'Crear Estudiante'}
-            </button>
+              </Box>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={createMutation.isPending}
+                sx={{ alignSelf: 'flex-start' }}
+              >
+                {createMutation.isPending ? 'Creando...' : 'Crear Estudiante'}
+              </Button>
+            </Box>
           </form>
-        </div>
-      )}
+        </Paper>
+      </Collapse>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bootcamp</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Riesgo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Nombre</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Bootcamp</TableCell>
+              <TableCell>Estado</TableCell>
+              <TableCell>Riesgo</TableCell>
+              <TableCell>Acciones</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {estudiantesList?.map((estudiante: Estudiante) => (
-              <tr key={estudiante.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+              <TableRow key={estudiante.id} hover>
+                <TableCell>
+                  <Typography fontWeight="bold">
                     {estudiante.nombre} {estudiante.apellido}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {estudiante.email}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {estudiante.bootcamp_nombre || '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getEstadoColor(estudiante.estado)}`}>
-                    {estudiante.estado.replace('_', ' ')}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                      <div
-                        className={`h-2 rounded-full ${
-                          estudiante.riesgo_desercion >= 60 ? 'bg-red-500' :
-                          estudiante.riesgo_desercion >= 30 ? 'bg-yellow-500' : 'bg-green-500'
-                        }`}
-                        style={{ width: `${estudiante.riesgo_desercion}%` }}
-                      />
-                    </div>
-                    <span className="text-sm text-gray-500">{estudiante.riesgo_desercion}%</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <Link
+                  </Typography>
+                </TableCell>
+                <TableCell>{estudiante.email}</TableCell>
+                <TableCell>{estudiante.bootcamp_nombre || '-'}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={estudiante.estado.replace('_', ' ')}
+                    size="small"
+                    color={getEstadoColor(estudiante.estado)}
+                  />
+                </TableCell>
+                <TableCell sx={{ minWidth: 150 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LinearProgress
+                      variant="determinate"
+                      value={estudiante.riesgo_desercion}
+                      color={getRiesgoColor(estudiante.riesgo_desercion)}
+                      sx={{ flexGrow: 1, height: 8, borderRadius: 1 }}
+                    />
+                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 35 }}>
+                      {estudiante.riesgo_desercion}%
+                    </Typography>
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    component={Link}
                     href={`/dashboard/estudiantes/${estudiante.id}`}
-                    className="text-primary-600 hover:text-primary-700"
+                    size="small"
                   >
                     Ver perfil
-                  </Link>
-                </td>
-              </tr>
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   )
 }
