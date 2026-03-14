@@ -52,7 +52,7 @@ export const auth = {
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
-    const response = await api.post('/auth/login', formData);
+    const response = await axios.post('/api/auth/login', formData);
     return response.data;
   },
   register: async (data: { email: string; nombre: string; password: string; rol: string }) => {
