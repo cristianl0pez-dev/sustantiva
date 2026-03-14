@@ -28,7 +28,30 @@ def get_estudiantes(
     if estado:
         query = query.filter(Estudiante.estado == estado)
     
-    return query.offset(skip).limit(limit).all()
+    estudiantes = query.offset(skip).limit(limit).all()
+    
+    result = []
+    for est in estudiantes:
+        bootcamp = db.query(Bootcamp).filter(Bootcamp.id == est.bootcamp_id).first()
+        est_dict = {
+            "nombre": est.nombre,
+            "apellido": est.apellido,
+            "email": est.email,
+            "telefono": est.telefono,
+            "whatsapp": est.whatsapp,
+            "bootcamp_id": est.bootcamp_id,
+            "estado": est.estado,
+            "responsable_id": est.responsable_id,
+            "id": est.id,
+            "riesgo_desercion": est.riesgo_desercion,
+            "fecha_ingreso": est.fecha_ingreso,
+            "ultimo_contacto": est.ultimo_contacto,
+            "created_at": est.created_at,
+            "bootcamp_nombre": bootcamp.nombre if bootcamp else None
+        }
+        result.append(est_dict)
+    
+    return result
 
 
 @router.get("/kanban", response_model=dict)

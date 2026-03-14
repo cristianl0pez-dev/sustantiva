@@ -54,6 +54,7 @@ class Estudiante(EstudianteBase):
     fecha_ingreso: date
     ultimo_contacto: Optional[datetime] = None
     created_at: datetime
+    bootcamp_nombre: Optional[str] = None
 
     class Config:
         from_attributes = True
