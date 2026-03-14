@@ -23,7 +23,8 @@ export default function LoginPage() {
       login(data.access_token, data.refresh_token)
       router.push('/dashboard')
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al iniciar sesión')
+      const errorMessage = err.response?.data?.detail || err.response?.data?.message || 'Error al iniciar sesión'
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage))
     } finally {
       setLoading(false)
     }
