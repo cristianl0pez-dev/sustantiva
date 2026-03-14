@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from app.db.session import get_db
 from app.models.estudiante import Estudiante, EstudianteEstado
 from app.models.bootcamp import Bootcamp
@@ -49,7 +49,10 @@ def get_kanban(
         bootcamp = db.query(Bootcamp).filter(Bootcamp.id == est.bootcamp_id).first()
         ultimo_contacto_dias = None
         if est.ultimo_contacto:
-            ultimo_contacto_dias = (datetime.now() - est.ultimo_contacto).days
+            ultimo_contacto = est.ultimo_contacto
+            if ultimo_contacto.tzinfo is not None:
+                ultimo_contacto = ultimo_contacto.replace(tzinfo=None)
+            ultimo_contacto_dias = (datetime.now() - ultimo_contacto).days
         
         est_data = {
             "id": est.id,
