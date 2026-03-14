@@ -5,14 +5,14 @@ from datetime import datetime
 from app.db.session import get_db
 from app.models.estudiante import Estudiante, EstudianteEstado
 from app.models.bootcamp import Bootcamp
-from app.schemas.estudiante import EstudianteCreate, EstudianteUpdate, Estudiante, EstudianteWithRelations, EstudianteKanban
+from app.schemas.estudiante import EstudianteCreate, EstudianteUpdate, EstudianteSchema, EstudianteWithRelations, EstudianteKanban
 from app.core.deps import require_student_success, get_current_user
 from app.models.user import User
 
 router = APIRouter(prefix="/estudiantes", tags=["estudiantes"])
 
 
-@router.get("", response_model=List[Estudiante])
+@router.get("", response_model=List[EstudianteSchema])
 def get_estudiantes(
     skip: int = 0,
     limit: int = 100,
@@ -86,7 +86,7 @@ def get_estudiante(
     return result
 
 
-@router.post("", response_model=Estudiante)
+@router.post("", response_model=EstudianteSchema)
 def create_estudiante(
     estudiante_data: EstudianteCreate,
     db: Session = Depends(get_db),
@@ -110,7 +110,7 @@ def create_estudiante(
     return estudiante
 
 
-@router.patch("/{estudiante_id}", response_model=Estudiante)
+@router.patch("/{estudiante_id}", response_model=EstudianteSchema)
 def update_estudiante(
     estudiante_id: int,
     estudiante_data: EstudianteUpdate,
@@ -129,7 +129,7 @@ def update_estudiante(
     return estudiante
 
 
-@router.patch("/{estudiante_id}/status", response_model=Estudiante)
+@router.patch("/{estudiante_id}/status", response_model=EstudianteSchema)
 def update_estudiante_status(
     estudiante_id: int,
     estado: EstudianteEstado,

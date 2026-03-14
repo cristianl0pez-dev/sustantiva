@@ -59,6 +59,9 @@ class Estudiante(EstudianteBase):
         from_attributes = True
 
 
+EstudianteSchema = Estudiante
+
+
 class EstudianteWithRelations(Estudiante):
     bootcamp: Optional[BootcampSimple] = None
     responsable: Optional[UserSimple] = None
