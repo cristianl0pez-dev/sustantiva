@@ -5,9 +5,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_API_URL 
-          ? `${process.env.NEXT_PUBLIC_API_URL}/:path*`
-          : 'http://localhost:8000/api/:path*',
+        destination: 'https://symmetrical-dollop-wr66gqv4vjw92gwgr-8000.app.github.dev/api/:path*',
       },
     ];
   },

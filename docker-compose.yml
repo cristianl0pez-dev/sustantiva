@@ -43,6 +43,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=https://symmetrical-dollop-wr66gqv4vjw92gwgr-8000.app.github.dev/api
     depends_on:
       - backend
     volumes:
