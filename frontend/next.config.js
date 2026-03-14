@@ -2,10 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://backend:8000/api';
     return [
       {
         source: '/api/:path*',
-        destination: 'http://backend:8000/api/:path*',
+        destination: `${backendUrl}/:path*`,
       },
     ];
   },
