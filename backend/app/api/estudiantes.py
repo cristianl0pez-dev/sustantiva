@@ -118,7 +118,7 @@ def get_estudiante(
     result.notas = [{"id": n.id, "contenido": n.contenido, "fecha": n.fecha, "autor": {"id": n.autor.id, "nombre": n.autor.nombre} if n.autor else None} for n in notas]
     
     conversaciones = db.query(Conversacion).filter(Conversacion.estudiante_id == estudiante_id).order_by(Conversacion.created_at.desc()).limit(20).all()
-    result.conversaciones = [{"id": c.id, "canal": c.canal, "tipo": c.tipo, "created_at": c.created_at} for c in conversaciones]
+    result.conversaciones = [{"id": c.id, "tipo": c.tipo.value if hasattr(c.tipo, 'value') else c.tipo, "mensaje": c.mensaje, "created_at": c.created_at} for c in conversaciones]
     
     tickets = db.query(Ticket).filter(Ticket.estudiante_id == estudiante_id).order_by(Ticket.fecha_creacion.desc()).limit(20).all()
     result.tickets = [{"id": t.id, "tipo": t.tipo, "estado": t.estado.value, "fecha_creacion": t.fecha_creacion} for t in tickets]
