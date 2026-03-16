@@ -1,16 +1,55 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.db.session import get_db
 from app.models.bootcamp import Bootcamp, BootcampEstado
 from app.models.estudiante import Estudiante, EstudianteEstado
+from app.models.nota import Nota
+from app.models.conversacion import Conversacion, ConversacionTipo
 from app.schemas.bootcamp import BootcampCreate, BootcampUpdate, BootcampSchema, BootcampWithCount
 from app.core.deps import require_admin, require_student_success
 from app.models.user import User
 import openpyxl
+import re
 
 router = APIRouter(prefix="/bootcamps", tags=["bootcamps"])
+
+
+def parse_duration_to_datetime(duration_str: str) -> datetime | None:
+    """Convierte duración como '2h 30m', '1 día', '3 días' a datetime restando de ahora"""
+    if not duration_str:
+        return None
+    
+    duration_str = str(duration_str).strip().lower()
+    now = datetime.now()
+    
+    # Patrones de duración
+    # "2h 30m", "3h 15m", "1h"
+    horas_match = re.search(r'(\d+)\s*h', duration_str)
+    minutos_match = re.search(r'(\d+)\s*m', duration_match := duration_str)
+    
+    # "1 día", "2 días", "3 dia"
+    dias_match = re.search(r'(\d+)\s*(?:día|dias|día)', duration_str)
+    
+    delta = timedelta()
+    
+    if horas_match:
+        horas = int(horas_match.group(1))
+        delta += timedelta(hours=horas)
+    
+    if minutos_match:
+        minutos = int(minutos_match.group(1))
+        delta += timedelta(minutes=minutos)
+    
+    if dias_match:
+        dias = int(dias_match.group(1))
+        delta += timedelta(days=dias)
+    
+    if delta.total_seconds() > 0:
+        return now - delta
+    
+    return None
 
 
 @router.get("", response_model=List[BootcampWithCount])
@@ -116,6 +155,9 @@ def importar_bootcamp_excel(
     telefono_idx = None
     whatsapp_idx = None
     ultimo_acceso_idx = None
+    ultimo_contacto_idx = None
+    notas_idx = None
+    conversaciones_idx = None
     
     for i, h in enumerate(headers):
         h_lower = str(h).lower() if h else ""
@@ -160,6 +202,21 @@ def importar_bootcamp_excel(
         if ultimo_acceso_idx is None:
             if "último acceso" in h_lower or "ultimo acceso" in h_lower or "last access" in h_lower:
                 ultimo_acceso_idx = i
+        
+        # Último contacto - "Último contacto"
+        if ultimo_contacto_idx is None:
+            if "último contacto" in h_lower or "ultimo contacto" in h_lower or "last contact" in h_lower:
+                ultimo_contacto_idx = i
+        
+        # Notas de seguimiento - "Notas de seguimiento"
+        if notas_idx is None:
+            if "nota" in h_lower and "seguimiento" in h_lower:
+                notas_idx = i
+        
+        # Conversaciones - "Conversaciones"
+        if conversaciones_idx is None:
+            if "conversacion" in h_lower or "conversación" in h_lower:
+                conversaciones_idx = i
     
     # Debug: mostrar qué columnas se detectaron
     print(f"DEBUG - Columnas detectadas:")
@@ -170,6 +227,9 @@ def importar_bootcamp_excel(
     print(f"  telefono_idx: {telefono_idx} -> {headers[telefono_idx] if telefono_idx else 'NO ENCONTRADO'}")
     print(f"  whatsapp_idx: {whatsapp_idx} -> {headers[whatsapp_idx] if whatsapp_idx else 'NO ENCONTRADO'}")
     print(f"  ultimo_acceso_idx: {ultimo_acceso_idx} -> {headers[ultimo_acceso_idx] if ultimo_acceso_idx else 'NO ENCONTRADO'}")
+    print(f"  ultimo_contacto_idx: {ultimo_contacto_idx} -> {headers[ultimo_contacto_idx] if ultimo_contacto_idx else 'NO ENCONTRADO'}")
+    print(f"  notas_idx: {notas_idx} -> {headers[notas_idx] if notas_idx else 'NO ENCONTRADO'}")
+    print(f"  conversaciones_idx: {conversaciones_idx} -> {headers[conversaciones_idx] if conversaciones_idx else 'NO ENCONTRADO'}")
     
     if codigo_idx is None:
         raise HTTPException(status_code=400, detail=f"No se encontró el código del bootcamp. Headers: {headers}")
@@ -212,6 +272,9 @@ def importar_bootcamp_excel(
     creados = 0
     errores = []
     
+    notas_creadas = 0
+    conversaciones_creadas = 0
+    
     for row in ws.iter_rows(min_row=2, values_only=True):
         if not row[email_idx]:
             continue
@@ -223,6 +286,7 @@ def importar_bootcamp_excel(
             telefono = str(row[telefono_idx]).strip() if telefono_idx and row[telefono_idx] else ""
             whatsapp = str(row[whatsapp_idx]).strip() if whatsapp_idx and row[whatsapp_idx] else ""
             
+            # Parsear último acceso (puede ser fecha o duración)
             ultimo_acceso_moodle = None
             if ultimo_acceso_idx and row[ultimo_acceso_idx]:
                 try:
@@ -230,19 +294,47 @@ def importar_bootcamp_excel(
                     if isinstance(valor, datetime):
                         ultimo_acceso_moodle = valor
                     elif isinstance(valor, str):
+                        # Primero intentar parsing de fecha
+                        parsed = False
                         for fmt in ["%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%d/%m/%Y", "%Y-%m-%d"]:
                             try:
                                 ultimo_acceso_moodle = datetime.strptime(valor.strip(), fmt)
+                                parsed = True
                                 break
                             except:
                                 pass
+                        # Si no es fecha, intentar parsear duración
+                        if not parsed:
+                            ultimo_acceso_moodle = parse_duration_to_datetime(valor)
                 except:
                     pass
             
+            # Parsear último contacto (duración)
+            ultimo_contacto = None
+            if ultimo_contacto_idx and row[ultimo_contacto_idx]:
+                try:
+                    valor = row[ultimo_contacto_idx]
+                    if isinstance(valor, str):
+                        ultimo_contacto = parse_duration_to_datetime(valor)
+                except:
+                    pass
+            
+            # Obtener notas y conversaciones
+            nota_contenido = None
+            if notas_idx and row[notas_idx]:
+                nota_contenido = str(row[notas_idx]).strip() if row[notas_idx] else None
+            
+            conversacion_mensaje = None
+            if conversaciones_idx and row[conversaciones_idx]:
+                conversacion_mensaje = str(row[conversaciones_idx]).strip() if row[conversaciones_idx] else None
+            
             existing = db.query(Estudiante).filter(Estudiante.email == email).first()
             if existing:
+                # Actualizar campos si existen
                 if ultimo_acceso_moodle:
                     existing.ultimo_acceso_moodle = ultimo_acceso_moodle
+                if ultimo_contacto:
+                    existing.ultimo_contacto = ultimo_contacto
                 errores.append(f"{email}: ya existe")
                 continue
             
@@ -255,9 +347,33 @@ def importar_bootcamp_excel(
                 bootcamp_id=bootcamp.id,
                 estado=EstudianteEstado.NUEVO,
                 responsable_id=current_user.id,
-                ultimo_acceso_moodle=ultimo_acceso_moodle
+                ultimo_acceso_moodle=ultimo_acceso_moodle,
+                ultimo_contacto=ultimo_contacto
             )
             db.add(estudiante)
+            db.flush()  # Para obtener el ID del estudiante
+            
+            # Crear nota de seguimiento si existe
+            if nota_contenido:
+                nota = Nota(
+                    estudiante_id=estudiante.id,
+                    autor_id=current_user.id,
+                    contenido=nota_contenido
+                )
+                db.add(nota)
+                notas_creadas += 1
+            
+            # Crear conversación si existe
+            if conversacion_mensaje:
+                conversacion = Conversacion(
+                    estudiante_id=estudiante.id,
+                    tipo=ConversacionTipo.EMAIL,  # Default como email
+                    mensaje=conversacion_mensaje,
+                    usuario_id=current_user.id
+                )
+                db.add(conversacion)
+                conversaciones_creadas += 1
+            
             creados += 1
         except Exception as e:
             errores.append(f"Error en fila: {str(e)}")
@@ -268,5 +384,7 @@ def importar_bootcamp_excel(
         "message": f"Bootcamp '{bootcamp.nombre}' creado con {creados} estudiantes",
         "bootcamp": BootcampSchema.model_validate(bootcamp),
         "estudiantes_creados": creados,
+        "notas_creadas": notas_creadas,
+        "conversaciones_creadas": conversaciones_creadas,
         "errores": errores[:10]
     }
