@@ -86,7 +86,7 @@ def get_bootcamps(
         ).count()
         bootcamp_data.estudiantes_en_riesgo = db.query(Estudiante).filter(
             Estudiante.bootcamp_id == bootcamp.id,
-            Estudiante.estado == EstudianteEstado.EN_RIESGO
+            Estudiante.riesgo_desercion >= 60
         ).count()
         result.append(bootcamp_data)
     return result

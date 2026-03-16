@@ -6,7 +6,7 @@ import {
   LinearProgress, Grid, Alert, Snackbar, Divider
 } from '@mui/material'
 import { Warning, PlayArrow, Save, History, TrendingUp, CheckCircle } from '@mui/icons-material'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function RiesgoConfig() {
   const theme = useTheme()
@@ -23,6 +23,16 @@ export default function RiesgoConfig() {
     dias_sin_moodle: 7,
     dias_sin_contacto: 14
   })
+
+  useEffect(() => {
+    if (config) {
+      setValues({
+        umbral_riesgo: config.umbral_riesgo,
+        dias_sin_moodle: config.dias_sin_moodle,
+        dias_sin_contacto: config.dias_sin_contacto
+      })
+    }
+  }, [config])
 
   const updateMutation = useMutation({
     mutationFn: configRiesgo.update,
