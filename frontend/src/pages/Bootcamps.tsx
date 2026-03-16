@@ -307,7 +307,11 @@ export default function Bootcamps() {
                   <IconButton 
                     size="small" 
                     sx={{ color: 'text.secondary' }}
-                    onClick={(e) => setMenuAnchor({ el: e.currentTarget, bootcamp: bc })}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setMenuAnchor({ el: e.currentTarget, bootcamp: bc })
+                    }}
                   >
                     <MoreVert />
                   </IconButton>
