@@ -20,13 +20,10 @@ def get_dashboard(
     current_user: User = Depends(require_student_success)
 ):
     total_estudiantes = db.query(Estudiante).count()
-    estudiantes_activos = db.query(Estudiante).filter(
-        Estudiante.estado.in_([EstudianteEstado.ACTIVO, EstudianteEstado.NECESITA_SEGUIMIENTO])
-    ).count()
     estudiantes_en_riesgo = db.query(Estudiante).filter(
-        (Estudiante.estado == EstudianteEstado.EN_RIESGO) | 
-        (Estudiante.riesgo_desercion >= 60)
+        Estudiante.riesgo_desercion >= 60
     ).count()
+    estudiantes_activos = max(total_estudiantes - estudiantes_en_riesgo, 0)
     estudiantes_reactivados = db.query(Estudiante).filter(
         Estudiante.estado == EstudianteEstado.REACTIVADO
     ).count()
