@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { auth } from '../lib/api'
-import { Box, Card, CardContent, TextField, Button, Typography, Alert } from '@mui/material'
-import { School as SchoolIcon, Email, Lock, Visibility, VisibilityOff } from '@mui/icons-material'
+import { Box, Card, CardContent, TextField, Button, Typography, Alert, Chip, Divider } from '@mui/material'
+import { School as SchoolIcon, Email, Lock, Visibility, VisibilityOff, Person, AdminPanelSettings } from '@mui/icons-material'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -109,6 +109,56 @@ export default function Login() {
               {loading ? 'Iniciando...' : 'Iniciar sesión'}
             </Button>
           </form>
+
+          <Divider sx={{ my: 3 }} />
+
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, textAlign: 'center' }}>
+              Cuentas de prueba
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Box 
+                onClick={() => { setEmail('admin@sustantiva.com'); setPassword('admin123') }}
+                sx={{ 
+                  p: 1.5, 
+                  borderRadius: 2, 
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <AdminPanelSettings sx={{ fontSize: 18, color: 'primary.main' }} />
+                  <Typography variant="body2" fontWeight="600">Administrador</Typography>
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 3.5, display: 'block' }}>
+                  admin@sustantiva.com / admin123
+                </Typography>
+              </Box>
+              <Box 
+                onClick={() => { setEmail('test@sustantiva.com'); setPassword('test123') }}
+                sx={{ 
+                  p: 1.5, 
+                  borderRadius: 2, 
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': { bgcolor: 'action.hover', borderColor: 'secondary.main' }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Person sx={{ fontSize: 18, color: 'secondary.main' }} />
+                  <Typography variant="body2" fontWeight="600">Student Success</Typography>
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 3.5, display: 'block' }}>
+                  test@sustantiva.com / test123
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
     </Box>

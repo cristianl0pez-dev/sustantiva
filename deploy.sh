@@ -132,8 +132,8 @@ main() {
     start_backend
     start_frontend
     
-    # Uncomment to initialize database with sample data
-    # init_db
+    # Initialize database with users
+    init_db
     
     show_status
     
