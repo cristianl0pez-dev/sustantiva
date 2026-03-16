@@ -12,6 +12,14 @@ from app.core.deps import require_admin, require_student_success
 from app.models.user import User
 import openpyxl
 import re
+import unicodedata
+
+def remove_accents(text):
+    """Remove accents from text"""
+    if not text:
+        return text
+    return ''.join(c for c in unicodedata.normalize('NFD', text)
+                   if unicodedata.category(c) != 'Mn')
 
 router = APIRouter(prefix="/bootcamps", tags=["bootcamps"])
 
@@ -162,10 +170,11 @@ def importar_bootcamp_excel(
     for i, h in enumerate(headers):
         h_lower = str(h).lower() if h else ""
         h_stripped = h_lower.strip() if h else ""
+        h_normalized = remove_accents(h_stripped)
         
         # Código bootcamp - busca RTD- o cualquier cosa que parezca código
         if codigo_idx is None:
-            if "rtd-" in h_lower or "codigo" in h_lower or "código" in h_lower:
+            if "rtd-" in h_lower or "codigo" in h_normalized or "codigo" in h_lower:
                 codigo_idx = i
             # Si es la primera columna y tiene formato de código
             elif i == 0 and h and ("-" in str(h) or len(str(h).strip()) > 5):
