@@ -35,7 +35,7 @@ def parse_duration_to_datetime(duration_str: str) -> datetime | None:
     # Patrones de duración
     # "2h 30m", "3h 15m", "1h"
     horas_match = re.search(r'(\d+)\s*h', duration_str)
-    minutos_match = re.search(r'(\d+)\s*m', duration_match := duration_str)
+    minutos_match = re.search(r'(\d+)\s*m', duration_str)
     
     # "1 día", "2 días", "3 dia"
     dias_match = re.search(r'(\d+)\s*(?:día|dias|día)', duration_str)
@@ -229,7 +229,7 @@ def importar_bootcamp_excel(
     
     # Debug: mostrar qué columnas se detectaron
     print(f"DEBUG - Columnas detectadas:")
-    print(f"  codigo_idx: {codigo_idx} -> {headers[codigo_idx] if codigo_idx else 'NO ENCONTRADO'}")
+    print(f"  codigo_idx: {codigo_idx} -> {headers[codigo_idx] if codigo_idx is not None else 'NO ENCONTRADO'}")
     print(f"  nombre_est_idx: {nombre_est_idx} -> {headers[nombre_est_idx] if nombre_est_idx else 'NO ENCONTRADO'}")
     print(f"  email_idx: {email_idx} -> {headers[email_idx] if email_idx else 'NO ENCONTRADO'}")
     print(f"  apellido_idx: {apellido_idx} -> {headers[apellido_idx] if apellido_idx else 'NO ENCONTRADO'}")
@@ -269,7 +269,7 @@ def importar_bootcamp_excel(
         try:
             # Obtener código del bootcamp de esta fila
             codigo_fila = None
-            if codigo_idx and row[codigo_idx]:
+            if codigo_idx is not None and row[codigo_idx]:
                 codigo_fila = str(row[codigo_idx]).strip()
             
             if not codigo_fila:
