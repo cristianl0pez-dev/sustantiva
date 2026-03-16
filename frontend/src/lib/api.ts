@@ -183,4 +183,63 @@ export const dashboard = {
   },
 };
 
+export const tickets = {
+  getAll: async (params?: { estado?: string; tipo?: string; prioridad?: string; nivel?: string; estudiante_id?: number }) => {
+    const response = await api.get('/tickets', { params });
+    return response.data;
+  },
+  getById: async (id: number) => {
+    const response = await api.get(`/tickets/${id}`);
+    return response.data;
+  },
+  create: async (data: any) => {
+    const response = await api.post('/tickets', data);
+    return response.data;
+  },
+  update: async (id: number, data: any) => {
+    const response = await api.patch(`/tickets/${id}`, data);
+    return response.data;
+  },
+  asignar: async (id: number, asignado_a_id: number) => {
+    const response = await api.post(`/tickets/${id}/asignar`, { asignado_a_id });
+    return response.data;
+  },
+  cerrar: async (id: number, resolucion: string, cierre_tipo: string) => {
+    const response = await api.post(`/tickets/${id}/cerrar`, { resolucion, cierre_tipo });
+    return response.data;
+  },
+  getInteracciones: async (id: number) => {
+    const response = await api.get(`/tickets/${id}/interacciones`);
+    return response.data;
+  },
+  createInteraccion: async (id: number, data: { tipo: string; contenido: string; canal?: string }) => {
+    const response = await api.post(`/tickets/${id}/interacciones`, data);
+    return response.data;
+  },
+  getOpciones: async () => {
+    const response = await api.get('/tickets/opciones');
+    return response.data;
+  },
+  getDashboard: async () => {
+    const response = await api.get('/tickets/dashboard');
+    return response.data;
+  },
+  getCasos: async (params?: { estado?: string }) => {
+    const response = await api.get('/tickets/casos', { params });
+    return response.data;
+  },
+  getCasoById: async (id: number) => {
+    const response = await api.get(`/tickets/casos/${id}`);
+    return response.data;
+  },
+  createCaso: async (data: any) => {
+    const response = await api.post('/tickets/casos', data);
+    return response.data;
+  },
+  updateCaso: async (id: number, data: any) => {
+    const response = await api.patch(`/tickets/casos/${id}`, data);
+    return response.data;
+  },
+};
+
 export default api;

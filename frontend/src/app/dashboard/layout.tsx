@@ -26,6 +26,7 @@ import {
   Dashboard as DashboardIcon,
   School as SchoolIcon,
   People as PeopleIcon,
+  ConfirmationNumber as TicketIcon,
   Logout as LogoutIcon,
   Menu as MenuIcon,
   Person as PersonIcon,
@@ -37,6 +38,7 @@ const drawerWidth = 260
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: <DashboardIcon /> },
+  { name: 'Tickets', href: '/dashboard/tickets', icon: <TicketIcon /> },
   { name: 'Bootcamps', href: '/dashboard/bootcamps', icon: <SchoolIcon /> },
   { name: 'Estudiantes', href: '/dashboard/estudiantes', icon: <PeopleIcon /> },
 ]

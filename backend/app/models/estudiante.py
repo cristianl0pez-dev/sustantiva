@@ -40,3 +40,4 @@ class Estudiante(Base):
     conversaciones = relationship("Conversacion", back_populates="estudiante")
     notas = relationship("Nota", back_populates="estudiante")
     actividades = relationship("Actividad", back_populates="estudiante")
+    tickets = relationship("Ticket", back_populates="estudiante")
