@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/context/AuthContext.tsx","./src/lib/api.ts","./src/pages/Bootcamps.tsx","./src/pages/Dashboard.tsx","./src/pages/DashboardLayout.tsx","./src/pages/Estudiantes.tsx","./src/pages/Login.tsx","./src/pages/TicketDetail.tsx","./src/pages/Tickets.tsx","./src/theme/theme.ts"],"version":"5.9.3"}
