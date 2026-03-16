@@ -7,7 +7,7 @@ from typing import Optional, List
 from app.db.session import get_db
 from app.models.config_riesgo import ConfiguracionRiesgo
 from app.models.estudiante import Estudiante, EstudianteEstado
-from app.models.ticket import Ticket, TicketTipo, TicketPrioridad
+from app.models.ticket import Ticket, TicketTipo, TicketPrioridad, TicketEstado
 from app.models.user import User
 from app.core.deps import require_student_success
 
@@ -111,11 +111,17 @@ def evaluar_riesgo(
         
         if riesgo >= config.umbral_riesgo:
             ticket_existente = db.query(Ticket).filter(
-                Ticket.estudiante_id == est.id,
-                Ticket.estado.in_(["abierto", "en_proceso", "espera"])
-            ).first()
+                Ticket.estudiante_id == est.id
+            ).order_by(Ticket.fecha_creacion.desc()).first()
             
-            if not ticket_existente:
+            skip_ticket = False
+            if ticket_existente:
+                if ticket_existente.estado in [TicketEstado.ABIERTO, TicketEstado.EN_PROCESO, TicketEstado.ESPERA]:
+                    skip_ticket = True
+                elif ticket_existente.fecha_creacion and (hoy - ticket_existente.fecha_creacion).days < 7:
+                    skip_ticket = True
+            
+            if not skip_ticket:
                 if riesgo >= 80:
                     prioridad = TicketPrioridad.URGENTE
                 elif riesgo >= 70:
