@@ -261,8 +261,7 @@ export default function Bootcamps() {
       <Grid container spacing={3}>
         {filteredBootcamps.map((bc) => (
           <Grid item xs={12} md={6} lg={4} key={bc.id}>
-            <Link to={`/estudiantes?bootcamp=${bc.id}`} style={{ textDecoration: 'none' }}>
-              <Card sx={{ 
+            <Card sx={{ 
                 height: '100%', 
                 borderRadius: 3, 
                 transition: 'all 0.3s ease',
@@ -277,7 +276,10 @@ export default function Bootcamps() {
                     : '0 12px 40px rgba(0,0,0,0.12)',
                   borderColor: 'primary.main'
                 }
-              }}>
+              }}
+              component={Link}
+              to={`/estudiantes?bootcamp=${bc.id}`}
+            >
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box sx={{ display: 'flex', gap: 2 }}>
@@ -403,7 +405,6 @@ export default function Bootcamps() {
                 </Grid>
               </CardContent>
             </Card>
-            </Link>
           </Grid>
         ))}
       </Grid>
