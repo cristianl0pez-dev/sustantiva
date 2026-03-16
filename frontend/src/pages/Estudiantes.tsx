@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link, useSearchParams } from 'react-router-dom'
 import { estudiantes, bootcamps } from '../lib/api'
 import { useTheme } from '@mui/material/styles'
-import { Box, Typography, TextField, InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, LinearProgress, Avatar, Grid, Select, MenuItem, FormControl, InputLabel, Card, CardContent } from '@mui/material'
-import { Search, FilterList, Email, Phone, Warning, School } from '@mui/icons-material'
+import { Box, Typography, TextField, InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, LinearProgress, Avatar, Grid, Select, MenuItem, FormControl, InputLabel, Card, CardContent, IconButton } from '@mui/material'
+import { Search, FilterList, Email, Phone, Warning, School, Visibility } from '@mui/icons-material'
 import { useState } from 'react'
 
 const getEstadoColor = (estado: string) => {
@@ -21,8 +22,11 @@ const getEstadoColor = (estado: string) => {
 
 export default function Estudiantes() {
   const theme = useTheme()
+  const [searchParams] = useSearchParams()
+  const bootcampId = searchParams.get('bootcamp')
+  
   const [search, setSearch] = useState('')
-  const [bootcampFilter, setBootcampFilter] = useState('')
+  const [bootcampFilter, setBootcampFilter] = useState(bootcampId || '')
   const [estadoFilter, setEstadoFilter] = useState('')
   
   const { data: estudiantesList, isLoading } = useQuery({ 
@@ -142,11 +146,23 @@ export default function Estudiantes() {
               <TableCell sx={{ fontWeight: 600 }}>Estado</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Último Acceso Moodle</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Riesgo</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filtered?.map((est: any) => (
-              <TableRow key={est.id} hover sx={{ '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'grey.50' } }}>
+              <TableRow 
+                key={est.id} 
+                hover 
+                component={Link} 
+                to={`/estudiantes/${est.id}`}
+                sx={{ 
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'grey.50' },
+                  '&:last-child td': { border: 0 }
+                }}
+              >
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: 14 }}>
@@ -198,6 +214,16 @@ export default function Estudiantes() {
                       {est.riesgo_desercion}%
                     </Typography>
                   </Box>
+                </TableCell>
+                <TableCell>
+                  <IconButton 
+                    component={Link} 
+                    to={`/estudiantes/${est.id}`} 
+                    size="small"
+                    sx={{ color: 'primary.main' }}
+                  >
+                    <Visibility />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}

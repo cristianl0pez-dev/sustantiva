@@ -89,6 +89,10 @@ def delete_bootcamp(
     if not bootcamp:
         raise HTTPException(status_code=404, detail="Bootcamp not found")
     
+    # Primero borrar los estudiantes relacionados
+    db.query(Estudiante).filter(Estudiante.bootcamp_id == bootcamp_id).delete()
+    
+    # Luego borrar el bootcamp
     db.delete(bootcamp)
     db.commit()
     return {"message": "Bootcamp deleted successfully"}
@@ -106,7 +110,6 @@ def importar_bootcamp_excel(
     headers = [cell.value for cell in ws[1]]
     
     codigo_idx = None
-    nombre_idx = None
     email_idx = None
     nombre_est_idx = None
     apellido_idx = None
@@ -116,26 +119,60 @@ def importar_bootcamp_excel(
     
     for i, h in enumerate(headers):
         h_lower = str(h).lower() if h else ""
-        if "rtd-" in h_lower or "codigo" in h_lower or "código" in h_lower or "curso" in h_lower:
-            if codigo_idx is None:
+        h_stripped = h_lower.strip() if h else ""
+        
+        # Código bootcamp - busca RTD- o cualquier cosa que parezca código
+        if codigo_idx is None:
+            if "rtd-" in h_lower or "codigo" in h_lower or "código" in h_lower:
                 codigo_idx = i
-        elif "nombre" in h_lower and "bootcamp" in h_lower:
-            nombre_idx = i
-        elif "email" in h_lower or "correo" in h_lower:
-            email_idx = i
-        elif "nombre" in h_lower and "estudiante" in h_lower and "apellido" not in h_lower:
-            nombre_est_idx = i
-        elif "apellido" in h_lower:
-            apellido_idx = i
-        elif "telefono" in h_lower:
-            telefono_idx = i
-        elif "whatsapp" in h_lower or "whats" in h_lower:
-            whatsapp_idx = i
-        elif "último acceso" in h_lower or "ultimo acceso" in h_lower or "last access" in h_lower:
-            ultimo_acceso_idx = i
+            # Si es la primera columna y tiene formato de código
+            elif i == 0 and h and ("-" in str(h) or len(str(h).strip()) > 5):
+                codigo_idx = i
+        
+        # Nombre del estudiante - "Nombre" sin "bootcamp"
+        if nombre_est_idx is None:
+            if h_stripped == "nombre":
+                nombre_est_idx = i
+            elif "nombre" in h_lower and "bootcamp" not in h_lower and "apellido" not in h_lower:
+                nombre_est_idx = i
+        
+        # Email - "Dirección de correo" o "Email"
+        if email_idx is None:
+            if "correo" in h_lower or "email" in h_lower:
+                email_idx = i
+        
+        # Apellido - "Apellido(s)"
+        if apellido_idx is None:
+            if "apellido" in h_lower:
+                apellido_idx = i
+        
+        # Teléfono - "Teléfono"
+        if telefono_idx is None:
+            if "telefono" in h_lower or "teléfono" in h_lower:
+                telefono_idx = i
+        
+        # WhatsApp - "WhatsApp"
+        if whatsapp_idx is None:
+            if "whatsapp" in h_lower or "whats" in h_lower:
+                whatsapp_idx = i
+        
+        # Último acceso - "Último acceso al curso"
+        if ultimo_acceso_idx is None:
+            if "último acceso" in h_lower or "ultimo acceso" in h_lower or "last access" in h_lower:
+                ultimo_acceso_idx = i
+    
+    # Debug: mostrar qué columnas se detectaron
+    print(f"DEBUG - Columnas detectadas:")
+    print(f"  codigo_idx: {codigo_idx} -> {headers[codigo_idx] if codigo_idx else 'NO ENCONTRADO'}")
+    print(f"  nombre_est_idx: {nombre_est_idx} -> {headers[nombre_est_idx] if nombre_est_idx else 'NO ENCONTRADO'}")
+    print(f"  email_idx: {email_idx} -> {headers[email_idx] if email_idx else 'NO ENCONTRADO'}")
+    print(f"  apellido_idx: {apellido_idx} -> {headers[apellido_idx] if apellido_idx else 'NO ENCONTRADO'}")
+    print(f"  telefono_idx: {telefono_idx} -> {headers[telefono_idx] if telefono_idx else 'NO ENCONTRADO'}")
+    print(f"  whatsapp_idx: {whatsapp_idx} -> {headers[whatsapp_idx] if whatsapp_idx else 'NO ENCONTRADO'}")
+    print(f"  ultimo_acceso_idx: {ultimo_acceso_idx} -> {headers[ultimo_acceso_idx] if ultimo_acceso_idx else 'NO ENCONTRADO'}")
     
     if codigo_idx is None:
-        raise HTTPException(status_code=400, detail="No se encontró el código del bootcamp en el Excel")
+        raise HTTPException(status_code=400, detail=f"No se encontró el código del bootcamp. Headers: {headers}")
     
     first_row = ws.iter_rows(min_row=2, max_row=2, values_only=True).__next__()
     codigo_bootcamp = str(first_row[codigo_idx]).strip() if first_row[codigo_idx] else None
@@ -151,7 +188,7 @@ def importar_bootcamp_excel(
             "estudiantes_existentes": db.query(Estudiante).filter(Estudiante.bootcamp_id == bootcamp.id).count()
         }
     
-    nombre_bootcamp = first_row[nombre_idx] if nombre_idx and first_row[nombre_idx] else codigo_bootcamp
+    nombre_bootcamp = codigo_bootcamp  # Usamos el código como nombre del bootcamp
     
     bootcamp = Bootcamp(
         codigo=codigo_bootcamp,

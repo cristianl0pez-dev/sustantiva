@@ -53,6 +53,7 @@ class Estudiante(EstudianteBase):
     riesgo_desercion: int = 0
     fecha_ingreso: date
     ultimo_contacto: Optional[datetime] = None
+    ultimo_acceso_moodle: Optional[datetime] = None
     created_at: datetime
     bootcamp_nombre: Optional[str] = None
 
@@ -66,6 +67,9 @@ EstudianteSchema = Estudiante
 class EstudianteWithRelations(Estudiante):
     bootcamp: Optional[BootcampSimple] = None
     responsable: Optional[UserSimple] = None
+    notas: list = []
+    conversaciones: list = []
+    tickets: list = []
 
 
 class EstudianteKanban(Estudiante):

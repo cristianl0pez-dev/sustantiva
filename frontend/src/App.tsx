@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import DashboardLayout from './pages/DashboardLayout'
 import Dashboard from './pages/Dashboard'
 import Estudiantes from './pages/Estudiantes'
+import EstudianteDetail from './pages/EstudianteDetail'
 import Bootcamps from './pages/Bootcamps'
 import Tickets from './pages/Tickets'
 import TicketDetail from './pages/TicketDetail'
@@ -30,6 +31,7 @@ function App() {
         <Route index element={<Navigate to="/dashboard" />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="estudiantes" element={<Estudiantes />} />
+        <Route path="estudiantes/:id" element={<EstudianteDetail />} />
         <Route path="bootcamps" element={<Bootcamps />} />
         <Route path="tickets" element={<Tickets />} />
         <Route path="tickets/:id" element={<TicketDetail />} />

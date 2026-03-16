@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app.db.session import get_db
 from app.models.estudiante import Estudiante, EstudianteEstado
 from app.models.bootcamp import Bootcamp
-from app.schemas.estudiante import EstudianteCreate, EstudianteUpdate, EstudianteSchema, EstudianteWithRelations, EstudianteKanban
+from app.schemas.estudiante import EstudianteCreate, EstudianteUpdate, EstudianteSchema, EstudianteWithRelations, EstudianteKanban, BootcampSimple, UserSimple
 from app.core.deps import require_student_success, get_current_user
 from app.models.user import User
 import openpyxl
@@ -100,15 +100,28 @@ def get_estudiante(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_student_success)
 ):
+    from app.models.nota import Nota
+    from app.models.conversacion import Conversacion
+    from app.models.ticket import Ticket
+    
     estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
     if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante not found")
     
     result = EstudianteWithRelations.model_validate(estudiante)
     if estudiante.bootcamp:
-        result.bootcamp = {"id": estudiante.bootcamp.id, "nombre": estudiante.bootcamp.nombre}
+        result.bootcamp = BootcampSimple(id=estudiante.bootcamp.id, nombre=estudiante.bootcamp.nombre)
     if estudiante.responsable:
-        result.responsable = {"id": estudiante.responsable.id, "nombre": estudiante.responsable.nombre, "email": estudiante.responsable.email}
+        result.responsable = UserSimple(id=estudiante.responsable.id, nombre=estudiante.responsable.nombre, email=estudiante.responsable.email)
+    
+    notas = db.query(Nota).filter(Nota.estudiante_id == estudiante_id).order_by(Nota.fecha.desc()).limit(20).all()
+    result.notas = [{"id": n.id, "contenido": n.contenido, "fecha": n.fecha, "autor": {"id": n.autor.id, "nombre": n.autor.nombre} if n.autor else None} for n in notas]
+    
+    conversaciones = db.query(Conversacion).filter(Conversacion.estudiante_id == estudiante_id).order_by(Conversacion.created_at.desc()).limit(20).all()
+    result.conversaciones = [{"id": c.id, "canal": c.canal, "tipo": c.tipo, "created_at": c.created_at} for c in conversaciones]
+    
+    tickets = db.query(Ticket).filter(Ticket.estudiante_id == estudiante_id).order_by(Ticket.fecha_creacion.desc()).limit(20).all()
+    result.tickets = [{"id": t.id, "tipo": t.tipo, "estado": t.estado.value, "fecha_creacion": t.fecha_creacion} for t in tickets]
     
     return result
 
@@ -288,4 +301,125 @@ def importar_estudiantes_excel(
         "errores": errores[:10],
         "bootcamp_id": bootcamp.id,
         "bootcamp_codigo": bootcamp.codigo
+    }
+
+
+@router.post("/evaluar-riesgo")
+def evaluar_riesgo_y_crear_tickets(
+    umbral_riesgo: int = 60,
+    dias_sin_moodle: int = 7,
+    dias_sin_contacto: int = 14,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_student_success)
+):
+    from app.models.ticket import Ticket, TicketTipo, TicketPrioridad
+    
+    estudiantes = db.query(Estudiante).all()
+    tickets_creados = []
+    estudiantes_evaluados = 0
+    
+    hoy = datetime.now(timezone.utc)
+    
+    for est in estudiantes:
+        estudiantes_evaluados += 1
+        
+        # Calcular días sin acceso Moodle
+        dias_moodle = None
+        if est.ultimo_acceso_moodle:
+            diff = hoy - est.ultimo_acceso_moodle
+            dias_moodle = diff.days
+        
+        # Calcular días sin contacto
+        dias_contacto = None
+        if est.ultimo_contacto:
+            diff = hoy - est.ultimo_contacto
+            dias_contacto = diff.days
+        
+        # Calcular riesgo
+        riesgo = 0
+        
+        # Por días sin Moodle (máximo 50 puntos)
+        if dias_moodle is not None:
+            if dias_moodle >= dias_sin_moodle:
+                riesgo = max(riesgo, 50 + min(20, (dias_moodle - dias_sin_moodle) * 3))
+        
+        # Por días sin contacto (máximo 50 puntos)
+        if dias_contacto is not None:
+            if dias_contacto >= dias_sin_contacto:
+                riesgo = max(riesgo, 50 + min(20, (dias_contacto - dias_sin_contacto) * 3))
+        
+        # Por estado de riesgo existente
+        if est.estado == EstudianteEstado.EN_RIESGO:
+            riesgo = max(riesgo, 70)
+        elif est.estado == EstudianteEstado.NECESITA_SEGUIMIENTO:
+            riesgo = max(riesgo, 40)
+        
+        # Actualizar riesgo en estudiante
+        est.riesgo_desercion = min(riesgo, 100)
+        
+        # Actualizar estado según nivel de riesgo
+        if riesgo >= 70:
+            if est.estado != EstudianteEstado.EN_RIESGO and est.estado != EstudianteEstado.ABANDONO and est.estado != EstudianteEstado.GRADUADO:
+                est.estado = EstudianteEstado.EN_RIESGO
+        elif riesgo >= 40:
+            if est.estado == EstudianteEstado.ACTIVO:
+                est.estado = EstudianteEstado.NECESITA_SEGUIMIENTO
+        elif riesgo < 30:
+            # Si el riesgo bajo, volver a activo si estaba en riesgo o seguimiento
+            if est.estado in [EstudianteEstado.EN_RIESGO, EstudianteEstado.NECESITA_SEGUIMIENTO]:
+                est.estado = EstudianteEstado.ACTIVO
+        
+        # Si supera el umbral, crear ticket si no existe uno abierto
+        if riesgo >= umbral_riesgo:
+            # Verificar si ya existe un ticket abierto para este estudiante
+            ticket_existente = db.query(Ticket).filter(
+                Ticket.estudiante_id == est.id,
+                Ticket.estado.in_(["abierto", "en_proceso", "espera"])
+            ).first()
+            
+            if not ticket_existente:
+                # Determinar prioridad según nivel de riesgo
+                if riesgo >= 80:
+                    prioridad = TicketPrioridad.URGENTE
+                elif riesgo >= 70:
+                    prioridad = TicketPrioridad.ALTA
+                elif riesgo >= 60:
+                    prioridad = TicketPrioridad.MEDIA
+                else:
+                    prioridad = TicketPrioridad.BAJA
+                
+                # Crear ticket
+                ticket = Ticket(
+                    estudiante_id=est.id,
+                    tipo=TicketTipo.ASISTENCIA,
+                    titulo=f"Alerta de riesgo de deserción - {est.nombre} {est.apellido}",
+                    descripcion=f"Estudiante en riesgo de deserción ({riesgo}%)\n\n"
+                              f"Días sin acceso Moodle: {dias_moodle if dias_moodle else 'N/A'}\n"
+                              f"Días sin contacto: {dias_contacto if dias_contacto else 'N/A'}\n"
+                              f"Estado actual: {est.estado.value}",
+                    prioridad=prioridad,
+                    asignado_a_id=est.responsable_id
+                )
+                db.add(ticket)
+                tickets_creados.append({
+                    "estudiante_id": est.id,
+                    "nombre": f"{est.nombre} {est.apellido}",
+                    "riesgo": riesgo,
+                    "ticket_id": None  # Se asignará después del commit
+                })
+    
+    db.commit()
+    
+    # Actualizar IDs de tickets
+    for info in tickets_creados:
+        est = db.query(Estudiante).filter(Estudiante.id == info["estudiante_id"]).first()
+        if est:
+            ticket = db.query(Ticket).filter(Ticket.estudiante_id == est.id).order_by(Ticket.id.desc()).first()
+            if ticket:
+                info["ticket_id"] = ticket.id
+    
+    return {
+        "estudiantes_evaluados": estudiantes_evaluados,
+        "tickets_creados": len(tickets_creados),
+        "detalle": tickets_creados
     }

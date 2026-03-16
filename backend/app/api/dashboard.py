@@ -24,7 +24,8 @@ def get_dashboard(
         Estudiante.estado.in_([EstudianteEstado.ACTIVO, EstudianteEstado.NECESITA_SEGUIMIENTO])
     ).count()
     estudiantes_en_riesgo = db.query(Estudiante).filter(
-        Estudiante.estado == EstudianteEstado.EN_RIESGO
+        (Estudiante.estado == EstudianteEstado.EN_RIESGO) | 
+        (Estudiante.riesgo_desercion >= 60)
     ).count()
     estudiantes_reactivados = db.query(Estudiante).filter(
         Estudiante.estado == EstudianteEstado.REACTIVADO

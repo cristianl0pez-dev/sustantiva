@@ -68,6 +68,10 @@ export const bootcamps = {
     const response = await api.post('/bootcamps', data)
     return response.data
   },
+  delete: async (id: number) => {
+    const response = await api.delete(`/bootcamps/${id}`)
+    return response.data
+  },
   importExcel: async (file: File) => {
     const formData = new FormData()
     formData.append('file', file)
@@ -83,6 +87,10 @@ export const estudiantes = {
     const response = await api.get('/estudiantes', { params })
     return response.data
   },
+  getById: async (id: number) => {
+    const response = await api.get(`/estudiantes/${id}`)
+    return response.data
+  },
   getKanban: async (bootcampId?: number) => {
     const response = await api.get('/estudiantes/kanban', { params: { bootcamp_id: bootcampId } })
     return response.data
@@ -93,6 +101,21 @@ export const estudiantes = {
   },
   updateStatus: async (id: number, estado: string) => {
     const response = await api.patch(`/estudiantes/${id}/status`, null, { params: { estado } })
+    return response.data
+  },
+}
+
+export const notas = {
+  getAll: async (estudianteId?: number) => {
+    const response = await api.get('/notas', { params: { estudiante_id: estudianteId } })
+    return response.data
+  },
+  create: async (data: { estudiante_id: number; contenido: string }) => {
+    const response = await api.post('/notas', data)
+    return response.data
+  },
+  delete: async (id: number) => {
+    const response = await api.delete(`/notas/${id}`)
     return response.data
   },
 }

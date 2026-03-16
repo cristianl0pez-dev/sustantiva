@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { bootcamps } from '../lib/api'
 import { useTheme } from '@mui/material/styles'
@@ -7,12 +8,12 @@ import {
   LinearProgress, IconButton, Button, Dialog, DialogTitle, 
   DialogContent, DialogActions, TextField, MenuItem, InputAdornment,
   Alert, Snackbar, Table, TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Paper
+  TableHead, TableRow, Paper, Menu
 } from '@mui/material'
 import { 
   School, People, Add, TrendingUp, Warning, 
   CalendarToday, AccessTime, MoreVert, Group, Search, 
-  Upload, FileUpload, CheckCircle, Error as ErrorIcon
+  Upload, FileUpload, CheckCircle, Error as ErrorIcon, Delete
 } from '@mui/icons-material'
 
 interface Bootcamp {
@@ -33,10 +34,18 @@ export default function Bootcamps() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [openModal, setOpenModal] = useState(false)
+  const [openManualModal, setOpenManualModal] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<any>(null)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' })
+  
+  // Delete modal state
+  const [deleteModal, setDeleteModal] = useState({ open: false, bootcamp: null as Bootcamp | null })
+  const [menuAnchor, setMenuAnchor] = useState<{el: HTMLElement | null, bootcamp: Bootcamp | null}>({ el: null, bootcamp: null })
+  
+  // Manual form state
+  const [manualForm, setManualForm] = useState({ codigo: '', nombre: '', descripcion: '' })
 
   const { data: bootcampsList, isLoading } = useQuery<Bootcamp[]>({ 
     queryKey: ['bootcamps'], 
@@ -52,6 +61,31 @@ export default function Bootcamps() {
     },
     onError: (error: any) => {
       setSnackbar({ open: true, message: error.response?.data?.detail || 'Error al importar', severity: 'error' })
+    }
+  })
+
+  const createMutation = useMutation({
+    mutationFn: bootcamps.create,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['bootcamps'] })
+      setSnackbar({ open: true, message: 'Bootcamp creado exitosamente', severity: 'success' })
+      setOpenManualModal(false)
+      setManualForm({ codigo: '', nombre: '', descripcion: '' })
+    },
+    onError: (error: any) => {
+      setSnackbar({ open: true, message: error.response?.data?.detail || 'Error al crear bootcamp', severity: 'error' })
+    }
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: bootcamps.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bootcamps'] })
+      setSnackbar({ open: true, message: 'Bootcamp eliminado', severity: 'success' })
+      setDeleteModal({ open: false, bootcamp: null })
+    },
+    onError: (error: any) => {
+      setSnackbar({ open: true, message: error.response?.data?.detail || 'Error al eliminar bootcamp', severity: 'error' })
     }
   })
 
@@ -111,6 +145,20 @@ export default function Bootcamps() {
               ),
             }}
           />
+          <Button 
+            variant="outlined" 
+            startIcon={<Add />}
+            onClick={() => setOpenManualModal(true)}
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none',
+              px: 3,
+              py: 1.5,
+              fontWeight: 600,
+            }}
+          >
+            Nuevo Bootcamp
+          </Button>
           <Button 
             variant="contained" 
             startIcon={<FileUpload />}
@@ -213,25 +261,27 @@ export default function Bootcamps() {
       <Grid container spacing={3}>
         {filteredBootcamps.map((bc) => (
           <Grid item xs={12} md={6} lg={4} key={bc.id}>
-            <Card sx={{ 
-              height: '100%', 
-              borderRadius: 3, 
-              transition: 'all 0.3s ease',
-              border: '1px solid',
-              borderColor: 'divider',
-              background: theme.palette.mode === 'dark' ? 'rgba(30, 41, 59, 0.5)' : 'white',
-              '&:hover': { 
-                transform: 'translateY(-8px)',
-                boxShadow: theme.palette.mode === 'dark' 
-                  ? '0 12px 40px rgba(0,0,0,0.4)' 
-                  : '0 12px 40px rgba(0,0,0,0.12)',
-                borderColor: 'primary.main'
-              }
-            }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Avatar 
+            <Link to={`/estudiantes?bootcamp=${bc.id}`} style={{ textDecoration: 'none' }}>
+              <Card sx={{ 
+                height: '100%', 
+                borderRadius: 3, 
+                transition: 'all 0.3s ease',
+                border: '1px solid',
+                borderColor: 'divider',
+                background: theme.palette.mode === 'dark' ? 'rgba(30, 41, 59, 0.5)' : 'white',
+                cursor: 'pointer',
+                '&:hover': { 
+                  transform: 'translateY(-8px)',
+                  boxShadow: theme.palette.mode === 'dark' 
+                    ? '0 12px 40px rgba(0,0,0,0.4)' 
+                    : '0 12px 40px rgba(0,0,0,0.12)',
+                  borderColor: 'primary.main'
+                }
+              }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <Avatar 
                       sx={{ 
                         width: 56, 
                         height: 56, 
@@ -254,7 +304,11 @@ export default function Bootcamps() {
                       </Typography>
                     </Box>
                   </Box>
-                  <IconButton size="small" sx={{ color: 'text.secondary' }}>
+                  <IconButton 
+                    size="small" 
+                    sx={{ color: 'text.secondary' }}
+                    onClick={(e) => setMenuAnchor({ el: e.currentTarget, bootcamp: bc })}
+                  >
                     <MoreVert />
                   </IconButton>
                 </Box>
@@ -345,6 +399,7 @@ export default function Bootcamps() {
                 </Grid>
               </CardContent>
             </Card>
+            </Link>
           </Grid>
         ))}
       </Grid>
@@ -477,6 +532,95 @@ export default function Bootcamps() {
               {importing ? 'Importando...' : 'Importar'}
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal Nuevo Bootcamp Manual */}
+      <Dialog open={openManualModal} onClose={() => setOpenManualModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Add /> Nuevo Bootcamp
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="Código"
+              value={manualForm.codigo}
+              onChange={(e) => setManualForm({ ...manualForm, codigo: e.target.value })}
+              fullWidth
+              required
+              placeholder="RTD-24-01-06-0023-4"
+            />
+            <TextField
+              label="Nombre"
+              value={manualForm.nombre}
+              onChange={(e) => setManualForm({ ...manualForm, nombre: e.target.value })}
+              fullWidth
+              required
+              placeholder="Desarrollo de Aplicaciones Full Stack Python"
+            />
+            <TextField
+              label="Descripción"
+              value={manualForm.descripcion}
+              onChange={(e) => setManualForm({ ...manualForm, descripcion: e.target.value })}
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Descripción opcional del bootcamp"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenManualModal(false)}>Cancelar</Button>
+          <Button 
+            variant="contained" 
+            onClick={() => createMutation.mutate(manualForm)}
+            disabled={!manualForm.codigo || !manualForm.nombre || createMutation.isPending}
+          >
+            {createMutation.isPending ? 'Creando...' : 'Crear Bootcamp'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Menu de 3 puntitos */}
+      <Menu
+        anchorEl={menuAnchor.el}
+        open={Boolean(menuAnchor.el)}
+        onClose={() => setMenuAnchor({ el: null, bootcamp: null })}
+      >
+        <MenuItem 
+          onClick={() => {
+            setDeleteModal({ open: true, bootcamp: menuAnchor.bootcamp })
+            setMenuAnchor({ el: null, bootcamp: null })
+          }}
+          sx={{ color: 'error.main' }}
+        >
+          <Delete sx={{ mr: 1 }} fontSize="small" />
+          Eliminar Bootcamp
+        </MenuItem>
+      </Menu>
+
+      {/* Modal de confirmación para eliminar */}
+      <Dialog open={deleteModal.open} onClose={() => setDeleteModal({ open: false, bootcamp: null })} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ color: 'error.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Delete /> ¿Estás seguro?
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Se eliminará el bootcamp <strong>{deleteModal.bootcamp?.codigo}</strong> y todos sus {deleteModal.bootcamp?.total_estudiantes} estudiantes. Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteModal({ open: false, bootcamp: null })}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="contained" 
+            color="error"
+            onClick={() => deleteMutation.mutate(deleteModal.bootcamp?.id!)}
+            disabled={deleteMutation.isPending}
+          >
+            {deleteMutation.isPending ? 'Eliminando...' : 'Sí, eliminar'}
+          </Button>
         </DialogActions>
       </Dialog>
 
