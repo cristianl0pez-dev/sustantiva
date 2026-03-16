@@ -234,35 +234,9 @@ def importar_bootcamp_excel(
     if codigo_idx is None:
         raise HTTPException(status_code=400, detail=f"No se encontró el código del bootcamp. Headers: {headers}")
     
-    first_row = ws.iter_rows(min_row=2, max_row=2, values_only=True).__next__()
-    codigo_bootcamp = str(first_row[codigo_idx]).strip() if first_row[codigo_idx] else None
-    
-    if not codigo_bootcamp:
-        raise HTTPException(status_code=400, detail="El código del bootcamp no puede estar vacío")
-    
-    bootcamp = db.query(Bootcamp).filter(Bootcamp.codigo == codigo_bootcamp).first()
-    if bootcamp:
-        return {
-            "message": "El bootcamp ya existe",
-            "bootcamp": BootcampSchema.model_validate(bootcamp),
-            "estudiantes_existentes": db.query(Estudiante).filter(Estudiante.bootcamp_id == bootcamp.id).count()
-        }
-    
-    nombre_bootcamp = codigo_bootcamp  # Usamos el código como nombre del bootcamp
-    
-    bootcamp = Bootcamp(
-        codigo=codigo_bootcamp,
-        nombre=str(nombre_bootcamp),
-        estado=BootcampEstado.ACTIVO
-    )
-    db.add(bootcamp)
-    db.commit()
-    db.refresh(bootcamp)
-    
     if email_idx is None:
         return {
-            "message": "Bootcamp creado sin estudiantes (no se encontró columna de email)",
-            "bootcamp": BootcampSchema.model_validate(bootcamp),
+            "message": "No se encontró columna de email",
             "estudiantes_creados": 0
         }
     
@@ -275,11 +249,41 @@ def importar_bootcamp_excel(
     notas_creadas = 0
     conversaciones_creadas = 0
     
+    # Cache de bootcamps para evitar consultas repetidas
+    bootcamps_cache = {}
+    current_bootcamp = None
+    
     for row in ws.iter_rows(min_row=2, values_only=True):
         if not row[email_idx]:
             continue
         
         try:
+            # Obtener código del bootcamp de esta fila
+            codigo_fila = None
+            if codigo_idx and row[codigo_idx]:
+                codigo_fila = str(row[codigo_idx]).strip()
+            
+            if not codigo_fila:
+                email_val = row[email_idx] if email_idx and row[email_idx] else '?'
+                errores.append(f"{email_val}: código de bootcamp vacío")
+                continue
+            
+            # Obtener o crear el bootcamp para esta fila
+            if codigo_fila not in bootcamps_cache:
+                bootcamp = db.query(Bootcamp).filter(Bootcamp.codigo == codigo_fila).first()
+                if not bootcamp:
+                    bootcamp = Bootcamp(
+                        codigo=codigo_fila,
+                        nombre=codigo_fila,
+                        estado=BootcampEstado.ACTIVO
+                    )
+                    db.add(bootcamp)
+                    db.commit()
+                    db.refresh(bootcamp)
+                bootcamps_cache[codigo_fila] = bootcamp
+            
+            current_bootcamp = bootcamps_cache[codigo_fila]
+            
             email = str(row[email_idx]).strip().lower()
             nombre = str(row[nombre_est_idx]).strip() if nombre_est_idx and row[nombre_est_idx] else ""
             apellido = str(row[apellido_idx]).strip() if apellido_idx and row[apellido_idx] else ""
@@ -344,7 +348,7 @@ def importar_bootcamp_excel(
                 apellido=apellido,
                 telefono=telefono or None,
                 whatsapp=whatsapp or None,
-                bootcamp_id=bootcamp.id,
+                bootcamp_id=current_bootcamp.id,
                 estado=EstudianteEstado.NUEVO,
                 responsable_id=current_user.id,
                 ultimo_acceso_moodle=ultimo_acceso_moodle,
@@ -380,10 +384,20 @@ def importar_bootcamp_excel(
     
     db.commit()
     
+    bootcamps_resumen = []
+    for codigo, bc in bootcamps_cache.items():
+        count = db.query(Estudiante).filter(Estudiante.bootcamp_id == bc.id).count()
+        bootcamps_resumen.append({
+            "codigo": bc.codigo,
+            "nombre": bc.nombre,
+            "estudiantes": count
+        })
+    
     return {
-        "message": f"Bootcamp '{bootcamp.nombre}' creado con {creados} estudiantes",
-        "bootcamp": BootcampSchema.model_validate(bootcamp),
+        "message": f"Se importaron {creados} estudiantes en {len(bootcamps_resumen)} bootcamps",
+        "bootcamps": bootcamps_resumen,
         "estudiantes_creados": creados,
+        "bootcamps_creados": len(bootcamps_resumen),
         "notas_creadas": notas_creadas,
         "conversaciones_creadas": conversaciones_creadas,
         "errores": errores[:10]
