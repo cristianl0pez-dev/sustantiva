@@ -67,7 +67,7 @@ export default function RiesgoConfig() {
     }
   })
 
-  if (isLoading) {
+  if (isLoading || !config) {
     return <Box sx={{ p: 3 }}><LinearProgress /></Box>
   }
 
