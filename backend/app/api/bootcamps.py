@@ -80,14 +80,14 @@ def get_bootcamps(
     for bootcamp in bootcamps:
         bootcamp_data = BootcampWithCount.model_validate(bootcamp)
         bootcamp_data.total_estudiantes = db.query(Estudiante).filter(Estudiante.bootcamp_id == bootcamp.id).count()
-        bootcamp_data.estudiantes_activos = db.query(Estudiante).filter(
-            Estudiante.bootcamp_id == bootcamp.id,
-            Estudiante.estado == EstudianteEstado.ACTIVO
-        ).count()
         bootcamp_data.estudiantes_en_riesgo = db.query(Estudiante).filter(
             Estudiante.bootcamp_id == bootcamp.id,
             Estudiante.riesgo_desercion >= 60
         ).count()
+        bootcamp_data.estudiantes_activos = max(
+            bootcamp_data.total_estudiantes - bootcamp_data.estudiantes_en_riesgo,
+            0
+        )
         result.append(bootcamp_data)
     return result
 
