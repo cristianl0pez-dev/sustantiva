@@ -8,6 +8,7 @@ import EstudianteDetail from './pages/EstudianteDetail'
 import Bootcamps from './pages/Bootcamps'
 import Tickets from './pages/Tickets'
 import TicketDetail from './pages/TicketDetail'
+import RiesgoConfig from './pages/RiesgoConfig'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -35,6 +36,7 @@ function App() {
         <Route path="bootcamps" element={<Bootcamps />} />
         <Route path="tickets" element={<Tickets />} />
         <Route path="tickets/:id" element={<TicketDetail />} />
+        <Route path="riesgo" element={<RiesgoConfig />} />
       </Route>
     </Routes>
   )

@@ -162,4 +162,19 @@ export const tickets = {
   },
 }
 
+export const configRiesgo = {
+  get: async () => {
+    const response = await api.get('/config/riesgo')
+    return response.data
+  },
+  update: async (data: { umbral_riesgo: number; dias_sin_moodle: number; dias_sin_contacto: number }) => {
+    const response = await api.put('/config/riesgo', data)
+    return response.data
+  },
+  evaluar: async () => {
+    const response = await api.post('/config/riesgo/evaluar')
+    return response.data
+  },
+}
+
 export default api

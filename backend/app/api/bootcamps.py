@@ -32,6 +32,12 @@ def parse_duration_to_datetime(duration_str: str) -> datetime | None:
     duration_str = str(duration_str).strip().lower()
     now = datetime.now()
     
+    # Handle "Hoy" and "Ayer"
+    if duration_str == "hoy":
+        return now
+    elif duration_str == "ayer":
+        return now - timedelta(days=1)
+    
     # Patrones de duración
     # "2h 30m", "3h 15m", "1h"
     horas_match = re.search(r'(\d+)\s*h', duration_str)
@@ -39,6 +45,8 @@ def parse_duration_to_datetime(duration_str: str) -> datetime | None:
     
     # "1 día", "2 días", "3 dia"
     dias_match = re.search(r'(\d+)\s*(?:día|dias|día)', duration_str)
+    
+    print(f"DEBUG parse: input='{duration_str}', horas_match={horas_match}, minutos_match={minutos_match}, dias_match={dias_match}")
     
     delta = timedelta()
     
@@ -55,7 +63,9 @@ def parse_duration_to_datetime(duration_str: str) -> datetime | None:
         delta += timedelta(days=dias)
     
     if delta.total_seconds() > 0:
-        return now - delta
+        result = now - delta
+        print(f"DEBUG parse result: {result}")
+        return result
     
     return None
 
@@ -301,9 +311,10 @@ def importar_bootcamp_excel(
             
             # Parsear último acceso (puede ser fecha o duración)
             ultimo_acceso_moodle = None
-            if ultimo_acceso_idx and row[ultimo_acceso_idx]:
+            if ultimo_acceso_idx is not None and row[ultimo_acceso_idx]:
                 try:
                     valor = row[ultimo_acceso_idx]
+                    print(f"DEBUG ultimo_acceso: index={ultimo_acceso_idx}, valor='{valor}', type={type(valor)}")
                     if isinstance(valor, datetime):
                         ultimo_acceso_moodle = valor
                     elif isinstance(valor, str):
@@ -324,9 +335,10 @@ def importar_bootcamp_excel(
             
             # Parsear último contacto (duración)
             ultimo_contacto = None
-            if ultimo_contacto_idx and row[ultimo_contacto_idx]:
+            if ultimo_contacto_idx is not None and row[ultimo_contacto_idx]:
                 try:
                     valor = row[ultimo_contacto_idx]
+                    print(f"DEBUG ultimo_contacto: index={ultimo_contacto_idx}, valor='{valor}', type={type(valor)}")
                     if isinstance(valor, str):
                         ultimo_contacto = parse_duration_to_datetime(valor)
                 except:

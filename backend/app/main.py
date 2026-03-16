@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth, bootcamps, estudiantes, conversaciones, notas, actividades, dashboard, tickets
+from app.api import auth, bootcamps, estudiantes, conversaciones, notas, actividades, dashboard, tickets, config_riesgo
 from app.db.base import Base
 from app.db.session import engine
 
@@ -28,6 +28,7 @@ app.include_router(notas.router, prefix="/api")
 app.include_router(actividades.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(tickets.router, prefix="/api")
+app.include_router(config_riesgo.router, prefix="/api")
 
 
 @app.get("/")
