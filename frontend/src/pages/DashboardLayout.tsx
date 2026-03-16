@@ -7,7 +7,7 @@ import {
   AppBar, Toolbar, Typography, Avatar, IconButton, Chip, Divider,
 } from '@mui/material'
 import {
-  Dashboard, School, People, ConfirmationNumber, Logout, Menu, DarkMode, LightMode, Warning,
+  Dashboard, School, People, ConfirmationNumber, Logout, Menu, DarkMode, LightMode, Warning, Checklist,
 } from '@mui/icons-material'
 
 const drawerWidth = 260
@@ -18,6 +18,7 @@ const navigation = [
   { name: 'Bootcamps', path: '/bootcamps', icon: <School /> },
   { name: 'Estudiantes', path: '/estudiantes', icon: <People /> },
   { name: 'Riesgo', path: '/riesgo', icon: <Warning /> },
+  { name: 'Asistencia', path: '/asistencia', icon: <Checklist /> },
 ]
 
 export default function DashboardLayout() {
