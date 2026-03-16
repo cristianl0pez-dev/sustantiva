@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useThemeMode } from '../main'
 import {
   Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   AppBar, Toolbar, Typography, Avatar, IconButton, Chip, Divider,
 } from '@mui/material'
 import {
-  Dashboard, School, People, ConfirmationNumber, Logout, Menu,
+  Dashboard, School, People, ConfirmationNumber, Logout, Menu, DarkMode, LightMode,
 } from '@mui/icons-material'
 
 const drawerWidth = 260
@@ -22,6 +23,7 @@ export default function DashboardLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { mode, toggleTheme } = useThemeMode()
 
   const handleLogout = () => {
     logout()
@@ -42,12 +44,14 @@ export default function DashboardLayout() {
     <Box sx={{ display: 'flex' }}>
       <AppBar
         position="fixed"
+        elevation={0}
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          bgcolor: 'white',
+          bgcolor: 'background.paper',
           color: 'text.primary',
-          boxShadow: 1,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <Toolbar>
@@ -55,6 +59,9 @@ export default function DashboardLayout() {
             <Menu />
           </IconButton>
           <Box sx={{ flexGrow: 1 }} />
+          <IconButton onClick={toggleTheme} sx={{ mr: 1 }}>
+            {mode === 'dark' ? <LightMode /> : <DarkMode />}
+          </IconButton>
           <Chip label={getRoleLabel(user?.rol || '')} size="small" color="primary" sx={{ mr: 2 }} />
           <IconButton onClick={handleLogout}>
             <Logout />
@@ -107,7 +114,7 @@ const drawerContent = (
             width: 36,
             height: 36,
             borderRadius: 2,
-            background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+            background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -115,7 +122,7 @@ const drawerContent = (
         >
           <Typography sx={{ color: 'white', fontWeight: 700 }}>S</Typography>
         </Box>
-        <Typography variant="h6" fontWeight={700} sx={{ background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+        <Typography variant="h6" fontWeight={700} sx={{ background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           Sustantiva
         </Typography>
       </Box>
@@ -128,12 +135,12 @@ const drawerContent = (
             component={NavLink}
             to={item.path}
             sx={{
-              borderRadius: 1,
+              borderRadius: 2,
               mb: 0.5,
-              '&.active': { bgcolor: 'primary.light', color: 'white', '& .MuiListItemIcon-root': { color: 'white' } },
+              '&.active': { bgcolor: 'primary.main', color: 'white', '& .MuiListItemIcon-root': { color: 'white' } },
             }}
           >
-            <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
+            <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>{item.icon}</ListItemIcon>
             <ListItemText primary={item.name} />
           </ListItemButton>
         </ListItem>

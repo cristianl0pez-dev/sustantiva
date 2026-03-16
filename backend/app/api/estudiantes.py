@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -8,6 +8,7 @@ from app.models.bootcamp import Bootcamp
 from app.schemas.estudiante import EstudianteCreate, EstudianteUpdate, EstudianteSchema, EstudianteWithRelations, EstudianteKanban
 from app.core.deps import require_student_success, get_current_user
 from app.models.user import User
+import openpyxl
 
 router = APIRouter(prefix="/estudiantes", tags=["estudiantes"])
 
@@ -185,3 +186,106 @@ def delete_estudiante(
     db.delete(estudiante)
     db.commit()
     return {"message": "Estudiante deleted successfully"}
+
+
+@router.post("/importar-excel")
+def importar_estudiantes_excel(
+    bootcamp_codigo: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_student_success)
+):
+    bootcamp = db.query(Bootcamp).filter(Bootcamp.codigo == bootcamp_codigo).first()
+    if not bootcamp:
+        raise HTTPException(status_code=404, detail="Bootcamp no encontrado")
+    
+    wb = openpyxl.load_workbook(file.file)
+    ws = wb.active
+    
+    headers = [cell.value for cell in ws[1]]
+    
+    email_idx = None
+    nombre_idx = None
+    apellido_idx = None
+    telefono_idx = None
+    whatsapp_idx = None
+    ultimo_acceso_idx = None
+    
+    for i, h in enumerate(headers):
+        h_lower = str(h).lower() if h else ""
+        if "email" in h_lower or "correo" in h_lower:
+            email_idx = i
+        elif "nombre" in h_lower and "apellido" not in h_lower:
+            nombre_idx = i
+        elif "apellido" in h_lower:
+            apellido_idx = i
+        elif "telefono" in h_lower:
+            telefono_idx = i
+        elif "whatsapp" in h_lower or "whats" in h_lower:
+            whatsapp_idx = i
+        elif "último acceso" in h_lower or "ultimo acceso" in h_lower or "last access" in h_lower:
+            ultimo_acceso_idx = i
+    
+    if email_idx is None or nombre_idx is None:
+        raise HTTPException(status_code=400, detail="El Excel debe tener columnas de email y nombre")
+    
+    creados = 0
+    errores = []
+    
+    from datetime import datetime
+    
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if not row[email_idx]:
+            continue
+        
+        email = str(row[email_idx]).strip().lower()
+        nombre = str(row[nombre_idx]).strip() if nombre_idx and row[nombre_idx] else ""
+        apellido = str(row[apellido_idx]).strip() if apellido_idx and row[apellido_idx] else ""
+        telefono = str(row[telefono_idx]).strip() if telefono_idx and row[telefono_idx] else ""
+        whatsapp = str(row[whatsapp_idx]).strip() if whatsapp_idx and row[whatsapp_idx] else ""
+        
+        ultimo_acceso_moodle = None
+        if ultimo_acceso_idx and row[ultimo_acceso_idx]:
+            try:
+                valor = row[ultimo_acceso_idx]
+                if isinstance(valor, datetime):
+                    ultimo_acceso_moodle = valor
+                elif isinstance(valor, str):
+                    for fmt in ["%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%d/%m/%Y", "%Y-%m-%d"]:
+                        try:
+                            ultimo_acceso_moodle = datetime.strptime(valor.strip(), fmt)
+                            break
+                        except:
+                            pass
+            except:
+                pass
+        
+        existing = db.query(Estudiante).filter(Estudiante.email == email).first()
+        if existing:
+            if ultimo_acceso_moodle:
+                existing.ultimo_acceso_moodle = ultimo_acceso_moodle
+            errores.append(f"{email}: actualizado")
+            continue
+        
+        estudiante = Estudiante(
+            email=email,
+            nombre=nombre,
+            apellido=apellido,
+            telefono=telefono or None,
+            whatsapp=whatsapp or None,
+            bootcamp_id=bootcamp.id,
+            estado=EstudianteEstado.NUEVO,
+            responsable_id=current_user.id,
+            ultimo_acceso_moodle=ultimo_acceso_moodle
+        )
+        db.add(estudiante)
+        creados += 1
+    
+    db.commit()
+    
+    return {
+        "message": f"Se importaron {creados} estudiantes",
+        "errores": errores[:10],
+        "bootcamp_id": bootcamp.id,
+        "bootcamp_codigo": bootcamp.codigo
+    }

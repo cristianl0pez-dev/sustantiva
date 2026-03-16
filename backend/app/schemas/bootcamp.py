@@ -5,6 +5,7 @@ from app.models.bootcamp import BootcampEstado
 
 
 class BootcampBase(BaseModel):
+    codigo: str
     nombre: str
     descripcion: Optional[str] = None
     fecha_inicio: Optional[date] = None
@@ -16,8 +17,13 @@ class BootcampCreate(BootcampBase):
     pass
 
 
-class BootcampUpdate(BootcampBase):
-    pass
+class BootcampUpdate(BaseModel):
+    codigo: Optional[str] = None
+    nombre: Optional[str] = None
+    descripcion: Optional[str] = None
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
+    estado: Optional[BootcampEstado] = None
 
 
 class Bootcamp(BootcampBase):

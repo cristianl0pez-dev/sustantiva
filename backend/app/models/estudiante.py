@@ -31,6 +31,7 @@ class Estudiante(Base):
     riesgo_desercion = Column(Integer, default=0)
     fecha_ingreso = Column(Date, default=func.now())
     ultimo_contacto = Column(DateTime(timezone=True))
+    ultimo_acceso_moodle = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

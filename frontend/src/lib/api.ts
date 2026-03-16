@@ -68,6 +68,14 @@ export const bootcamps = {
     const response = await api.post('/bootcamps', data)
     return response.data
   },
+  importExcel: async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post('/bootcamps/importar-excel', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
 }
 
 export const estudiantes = {

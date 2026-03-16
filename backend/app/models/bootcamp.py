@@ -16,6 +16,7 @@ class Bootcamp(Base):
     __tablename__ = "bootcamps"
 
     id = Column(Integer, primary_key=True, index=True)
+    codigo = Column(String(50), unique=True, index=True, nullable=False)
     nombre = Column(String(255), nullable=False)
     descripcion = Column(Text)
     fecha_inicio = Column(Date)

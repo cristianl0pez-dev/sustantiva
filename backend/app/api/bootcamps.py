@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 from app.db.session import get_db
-from app.models.bootcamp import Bootcamp
+from app.models.bootcamp import Bootcamp, BootcampEstado
 from app.models.estudiante import Estudiante, EstudianteEstado
 from app.schemas.bootcamp import BootcampCreate, BootcampUpdate, BootcampSchema, BootcampWithCount
 from app.core.deps import require_admin, require_student_success
 from app.models.user import User
+import openpyxl
 
 router = APIRouter(prefix="/bootcamps", tags=["bootcamps"])
 
@@ -90,3 +92,144 @@ def delete_bootcamp(
     db.delete(bootcamp)
     db.commit()
     return {"message": "Bootcamp deleted successfully"}
+
+
+@router.post("/importar-excel")
+def importar_bootcamp_excel(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_student_success)
+):
+    wb = openpyxl.load_workbook(file.file)
+    ws = wb.active
+    
+    headers = [cell.value for cell in ws[1]]
+    
+    codigo_idx = None
+    nombre_idx = None
+    email_idx = None
+    nombre_est_idx = None
+    apellido_idx = None
+    telefono_idx = None
+    whatsapp_idx = None
+    ultimo_acceso_idx = None
+    
+    for i, h in enumerate(headers):
+        h_lower = str(h).lower() if h else ""
+        if "rtd-" in h_lower or "codigo" in h_lower or "código" in h_lower or "curso" in h_lower:
+            if codigo_idx is None:
+                codigo_idx = i
+        elif "nombre" in h_lower and "bootcamp" in h_lower:
+            nombre_idx = i
+        elif "email" in h_lower or "correo" in h_lower:
+            email_idx = i
+        elif "nombre" in h_lower and "estudiante" in h_lower and "apellido" not in h_lower:
+            nombre_est_idx = i
+        elif "apellido" in h_lower:
+            apellido_idx = i
+        elif "telefono" in h_lower:
+            telefono_idx = i
+        elif "whatsapp" in h_lower or "whats" in h_lower:
+            whatsapp_idx = i
+        elif "último acceso" in h_lower or "ultimo acceso" in h_lower or "last access" in h_lower:
+            ultimo_acceso_idx = i
+    
+    if codigo_idx is None:
+        raise HTTPException(status_code=400, detail="No se encontró el código del bootcamp en el Excel")
+    
+    first_row = ws.iter_rows(min_row=2, max_row=2, values_only=True).__next__()
+    codigo_bootcamp = str(first_row[codigo_idx]).strip() if first_row[codigo_idx] else None
+    
+    if not codigo_bootcamp:
+        raise HTTPException(status_code=400, detail="El código del bootcamp no puede estar vacío")
+    
+    bootcamp = db.query(Bootcamp).filter(Bootcamp.codigo == codigo_bootcamp).first()
+    if bootcamp:
+        return {
+            "message": "El bootcamp ya existe",
+            "bootcamp": BootcampSchema.model_validate(bootcamp),
+            "estudiantes_existentes": db.query(Estudiante).filter(Estudiante.bootcamp_id == bootcamp.id).count()
+        }
+    
+    nombre_bootcamp = first_row[nombre_idx] if nombre_idx and first_row[nombre_idx] else codigo_bootcamp
+    
+    bootcamp = Bootcamp(
+        codigo=codigo_bootcamp,
+        nombre=str(nombre_bootcamp),
+        estado=BootcampEstado.ACTIVO
+    )
+    db.add(bootcamp)
+    db.commit()
+    db.refresh(bootcamp)
+    
+    if email_idx is None:
+        return {
+            "message": "Bootcamp creado sin estudiantes (no se encontró columna de email)",
+            "bootcamp": BootcampSchema.model_validate(bootcamp),
+            "estudiantes_creados": 0
+        }
+    
+    if nombre_est_idx is None:
+        raise HTTPException(status_code=400, detail="No se encontró columna de nombre del estudiante")
+    
+    creados = 0
+    errores = []
+    
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if not row[email_idx]:
+            continue
+        
+        try:
+            email = str(row[email_idx]).strip().lower()
+            nombre = str(row[nombre_est_idx]).strip() if nombre_est_idx and row[nombre_est_idx] else ""
+            apellido = str(row[apellido_idx]).strip() if apellido_idx and row[apellido_idx] else ""
+            telefono = str(row[telefono_idx]).strip() if telefono_idx and row[telefono_idx] else ""
+            whatsapp = str(row[whatsapp_idx]).strip() if whatsapp_idx and row[whatsapp_idx] else ""
+            
+            ultimo_acceso_moodle = None
+            if ultimo_acceso_idx and row[ultimo_acceso_idx]:
+                try:
+                    valor = row[ultimo_acceso_idx]
+                    if isinstance(valor, datetime):
+                        ultimo_acceso_moodle = valor
+                    elif isinstance(valor, str):
+                        for fmt in ["%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%d/%m/%Y", "%Y-%m-%d"]:
+                            try:
+                                ultimo_acceso_moodle = datetime.strptime(valor.strip(), fmt)
+                                break
+                            except:
+                                pass
+                except:
+                    pass
+            
+            existing = db.query(Estudiante).filter(Estudiante.email == email).first()
+            if existing:
+                if ultimo_acceso_moodle:
+                    existing.ultimo_acceso_moodle = ultimo_acceso_moodle
+                errores.append(f"{email}: ya existe")
+                continue
+            
+            estudiante = Estudiante(
+                email=email,
+                nombre=nombre,
+                apellido=apellido,
+                telefono=telefono or None,
+                whatsapp=whatsapp or None,
+                bootcamp_id=bootcamp.id,
+                estado=EstudianteEstado.NUEVO,
+                responsable_id=current_user.id,
+                ultimo_acceso_moodle=ultimo_acceso_moodle
+            )
+            db.add(estudiante)
+            creados += 1
+        except Exception as e:
+            errores.append(f"Error en fila: {str(e)}")
+    
+    db.commit()
+    
+    return {
+        "message": f"Bootcamp '{bootcamp.nombre}' creado con {creados} estudiantes",
+        "bootcamp": BootcampSchema.model_validate(bootcamp),
+        "estudiantes_creados": creados,
+        "errores": errores[:10]
+    }
