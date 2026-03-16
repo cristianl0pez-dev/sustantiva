@@ -153,7 +153,7 @@ export default function Estudiantes() {
             onChange={(e) => setRiesgoFilter(e.target.value)}
           >
             <MenuItem value="">Todos</MenuItem>
-            <MenuItem value="true">En Riesgo (>= 60%)</MenuItem>
+            <MenuItem value="true">{'En Riesgo (>= 60%)'}</MenuItem>
           </Select>
         </FormControl>
       </Box>
