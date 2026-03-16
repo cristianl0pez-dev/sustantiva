@@ -47,6 +47,7 @@ def get_estudiantes(
             "riesgo_desercion": est.riesgo_desercion,
             "fecha_ingreso": est.fecha_ingreso,
             "ultimo_contacto": est.ultimo_contacto,
+            "ultimo_acceso_moodle": est.ultimo_acceso_moodle,
             "created_at": est.created_at,
             "bootcamp_nombre": bootcamp.nombre if bootcamp else None
         }
