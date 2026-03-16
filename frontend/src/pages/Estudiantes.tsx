@@ -4,7 +4,7 @@ import { estudiantes, bootcamps } from '../lib/api'
 import { useTheme } from '@mui/material/styles'
 import { Box, Typography, TextField, InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, LinearProgress, Avatar, Grid, Select, MenuItem, FormControl, InputLabel, Card, CardContent, IconButton } from '@mui/material'
 import { Search, FilterList, Email, Phone, Warning, School, Visibility } from '@mui/icons-material'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const getEstadoColor = (estado: string) => {
   const colors: Record<string, any> = { 
@@ -24,10 +24,13 @@ export default function Estudiantes() {
   const theme = useTheme()
   const [searchParams] = useSearchParams()
   const bootcampId = searchParams.get('bootcamp')
+  const estadoQuery = searchParams.get('estado') || ''
+  const riesgoQuery = searchParams.get('riesgo') || ''
   
   const [search, setSearch] = useState('')
   const [bootcampFilter, setBootcampFilter] = useState(bootcampId || '')
-  const [estadoFilter, setEstadoFilter] = useState('')
+  const [estadoFilter, setEstadoFilter] = useState(estadoQuery)
+  const [riesgoFilter, setRiesgoFilter] = useState(riesgoQuery)
   
   const { data: estudiantesList, isLoading } = useQuery({ 
     queryKey: ['estudiantes'], 
@@ -39,11 +42,18 @@ export default function Estudiantes() {
     queryFn: bootcamps.getAll 
   })
 
+  useEffect(() => {
+    setBootcampFilter(bootcampId || '')
+    setEstadoFilter(estadoQuery)
+    setRiesgoFilter(riesgoQuery)
+  }, [bootcampId, estadoQuery, riesgoQuery])
+
   const filtered = estudiantesList?.filter((e: any) => {
     const matchSearch = `${e.nombre} ${e.apellido} ${e.email}`.toLowerCase().includes(search.toLowerCase())
     const matchBootcamp = !bootcampFilter || e.bootcamp_id === parseInt(bootcampFilter)
     const matchEstado = !estadoFilter || e.estado === estadoFilter
-    return matchSearch && matchBootcamp && matchEstado
+    const matchRiesgo = !riesgoFilter || (riesgoFilter === 'true' ? e.riesgo_desercion >= 60 : true)
+    return matchSearch && matchBootcamp && matchEstado && matchRiesgo
   })
 
   if (isLoading) return <Box sx={{ p: 3 }}><LinearProgress /></Box>
@@ -132,6 +142,18 @@ export default function Estudiantes() {
             <MenuItem value="en_riesgo">En Riesgo</MenuItem>
             <MenuItem value="reactivado">Reactivado</MenuItem>
             <MenuItem value="graduado">Graduado</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 160 }}>
+          <InputLabel>Riesgo</InputLabel>
+          <Select
+            value={riesgoFilter}
+            label="Riesgo"
+            onChange={(e) => setRiesgoFilter(e.target.value)}
+          >
+            <MenuItem value="">Todos</MenuItem>
+            <MenuItem value="true">En Riesgo (>= 60%)</MenuItem>
           </Select>
         </FormControl>
       </Box>
