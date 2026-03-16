@@ -268,7 +268,6 @@ export default function Bootcamps() {
                 border: '1px solid',
                 borderColor: 'divider',
                 background: theme.palette.mode === 'dark' ? 'rgba(30, 41, 59, 0.5)' : 'white',
-                cursor: 'pointer',
                 '&:hover': { 
                   transform: 'translateY(-8px)',
                   boxShadow: theme.palette.mode === 'dark' 
@@ -277,12 +276,10 @@ export default function Bootcamps() {
                   borderColor: 'primary.main'
                 }
               }}
-              component={Link}
-              to={`/estudiantes?bootcamp=${bc.id}`}
             >
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 2, flex: 1 }} component={Link} to={`/estudiantes?bootcamp=${bc.id}`} style={{ textDecoration: 'none' }}>
                       <Avatar 
                       sx={{ 
                         width: 56, 
@@ -319,7 +316,13 @@ export default function Bootcamps() {
                   </IconButton>
                 </Box>
 
-                <Typography variant="h6" fontWeight="600" sx={{ mb: 1, lineHeight: 1.3, color: 'text.primary' }}>
+                <Typography 
+                  variant="h6" 
+                  fontWeight="600" 
+                  sx={{ mb: 1, lineHeight: 1.3, color: 'text.primary', textDecoration: 'none' }}
+                  component={Link}
+                  to={`/estudiantes?bootcamp=${bc.id}`}
+                >
                   {bc.nombre}
                 </Typography>
 
@@ -351,7 +354,7 @@ export default function Bootcamps() {
                   />
                 </Box>
 
-                <Grid container spacing={1.5}>
+                <Grid container spacing={1.5} component={Link} to={`/estudiantes?bootcamp=${bc.id}`} style={{ textDecoration: 'none' }}>
                   <Grid item xs={4}>
                     <Box sx={{ 
                       textAlign: 'center', 
